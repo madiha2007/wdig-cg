@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "IIT Bombay",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "type": "Engineering",
+    "rating": 4.8
+  },
+  {
+    "id": 2,
+    "name": "NIT Trichy",
+    "city": "Tiruchirappalli",
+    "state": "Tamil Nadu",
+    "type": "Engineering",
+    "rating": 4.6
+  },
+  {
+    "id": 3,
+    "name": "Delhi University",
+    "city": "Delhi",
+    "state": "Delhi",
+    "type": "University",
+    "rating": 4.4
+  }
+]
