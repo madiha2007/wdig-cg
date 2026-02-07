@@ -7,14 +7,16 @@ import { useAssessment } from "@/app/context/AssessmentContext";
 
 const AptitudeTest = () => {
   const router = useRouter();
-  const { setUserProfile } = useAssessment();
-
+  const { finalizeAssessment } = useAssessment();
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [skippedQuestions, setSkippedQuestions] = useState(new Set());
+  const [questionStartTime, setQuestionStartTime] = useState(null);
+  const [answerTimes, setAnswerTimes] = useState([]);
+
 
   // ✅ Fetch Questions
 useEffect(() => {
@@ -30,6 +32,10 @@ useEffect(() => {
       console.error("Fetch error:", err);
     });
 }, []);
+
+useEffect(() => {
+  setQuestionStartTime(Date.now());
+}, [currentQuestionIndex, currentSectionIndex]);
 
 
   // ✅ Group Questions by Section
@@ -77,24 +83,32 @@ useEffect(() => {
   });
 
   // ✅ Answer Handler
-  const handleAnswerSelect = index => {
-    setSelectedOption(index);
+const handleAnswerSelect = (index) => {
+  // ⏱️ record time
+  if (questionStartTime) {
+    const timeTaken =
+      (Date.now() - questionStartTime) / 1000; // seconds
+    setAnswerTimes((prev) => [...prev, timeTaken]);
+  }
 
-    const value = isPersonalityQuestion
-      ? currentQuestion.options[index].label
-      : index;
+  setSelectedOption(index);
 
-    setAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: value
-    }));
+  const value = isPersonalityQuestion
+    ? currentQuestion.options[index].label
+    : index;
 
-    setSkippedQuestions(prev => {
-      const copy = new Set(prev);
-      copy.delete(currentQuestion.id);
-      return copy;
-    });
-  };
+  setAnswers((prev) => ({
+    ...prev,
+    [currentQuestion.id]: value,
+  }));
+
+  setSkippedQuestions((prev) => {
+    const copy = new Set(prev);
+    copy.delete(currentQuestion.id);
+    return copy;
+  });
+};
+
 
   // ✅ Navigation
   const handleNext = () => {
@@ -129,18 +143,31 @@ useEffect(() => {
 
   // ✅ Submit
 const handleSubmit = () => {
-  const userProfile = evaluateResponses(answers);
+  const rawTraitScores = evaluateResponses(answers);
 
-  console.log("SUBMIT CLICKED");
-  console.log("PROFILE:", userProfile);
+  // ⏱️ confidence calculation
+  const avgTime =
+    answerTimes.reduce((a, b) => a + b, 0) /
+    Math.max(answerTimes.length, 1);
 
-  // ✅ SAVE RESULT LOCALLY
-  localStorage.setItem(
-    "aptitudeResult",
-    JSON.stringify(userProfile)
+  const MAX_TIME = 20; // seconds per question
+  const confidence = Math.max(
+    0,
+    Math.min(1, 1 - avgTime / MAX_TIME)
   );
 
-  // ✅ NAVIGATE TO RESULTS PAGE
+  // 📦 package result for context
+  const finalResult = {
+    traits: rawTraitScores.traits,
+    meta: {
+      ...rawTraitScores.meta,
+      confidence,
+    },
+  };
+
+  // 🔥 send to AssessmentContext
+  finalizeAssessment(finalResult);
+
   router.push("/results");
 };
 
