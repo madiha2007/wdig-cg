@@ -30,14 +30,21 @@ export default function LoginPage() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    setLoading(true);
-
-    // Replace with real login logic
     setTimeout(() => {
       setLoading(false);
-      alert("Logged in successfully!");
-      router.push("/"); // redirect after login
-    }, 1200);
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+            email: form.email,
+            name: form.displayName,
+            photo: form.photoURL, // 👈 needed for avatar image
+        })
+      );
+
+      router.push("/dashboard");
+    }, 1200); 
+
   };
 
   return (
@@ -81,9 +88,20 @@ export default function LoginPage() {
               onClick={async () => {
                 try {
                   const result = await signInWithGoogle();
-                  console.log("User:", result.user);
-                  alert("Logged in successfully!");
-                  router.push("/"); // redirect if needed
+                  const user = result.user;
+
+                  // SAVE USER FOR NAVBAR + PROFILE
+                  localStorage.setItem(
+                    "user",
+                    JSON.stringify({
+                      email: user.email,
+                      name: user.displayName,
+                      photo: user.photoURL,
+                    })
+                  );
+
+                  router.push("/dashboard");
+
                 } catch (error) {
                   console.error(error);
                   alert("Google login failed. Please try again.");

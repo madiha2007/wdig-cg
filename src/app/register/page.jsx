@@ -58,6 +58,23 @@ export default function RegisterPage() {
       });
 
       router.push("/login");
+      await updateProfile(userCred.user, {
+  displayName: form.name.trim(),
+});
+
+// Save user info locally for quick access
+localStorage.setItem(
+  "user",
+  JSON.stringify({
+    name: form.name.trim(),
+    email: userCred.user.email,
+    uid: userCred.user.uid,
+  })
+);
+
+// Redirect straight to dashboard
+router.push("/dashboard");
+
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
         setErrors({ email: "Email already registered" });
