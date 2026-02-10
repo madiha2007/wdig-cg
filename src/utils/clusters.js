@@ -1,4 +1,4 @@
-export const CLUSTERS = [
+export const clusters = [
   {
     id: "analytical_thinker",
     name: "Analytical Thinker",
@@ -207,3 +207,20 @@ export const CLUSTERS = [
 },
 
 ];
+
+
+// 2️⃣ IMPORT TRAITS (or FEATURE_ORDER length)
+import { TRAITS } from "./traits";
+
+// 3️⃣ VALIDATION — AFTER clusters exists
+clusters.forEach((c) => {
+  if (!Array.isArray(c.vector)) {
+    throw new Error(`Cluster ${c.id} has no vector`);
+  }
+
+  if (c.vector.length !== TRAITS.length) {
+    throw new Error(
+      `Cluster ${c.id} vector length ${c.vector.length} != ${TRAITS.length}`
+    );
+  }
+});

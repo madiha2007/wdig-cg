@@ -15,19 +15,38 @@ export default function FloatingChatbot() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+const sendMessage = async () => {
+  if (!input.trim()) return;
 
-    setMessages(prev => [...prev, { sender: "user", text: input }]);
-    setInput("");
+  const userMsg = { sender: "user", text: input };
 
-    setTimeout(() => {
-      setMessages(prev => [
-        ...prev,
-        { sender: "bot", text: "Great question! 🚀 I’ll guide you based on your skills." },
-      ]);
-    }, 700);
-  };
+  setMessages(prev => [...prev, userMsg]);
+  setInput("");
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: input,
+        history: messages, // 👈 MEMORY
+      }),
+    });
+
+    const data = await res.json();
+
+    setMessages(prev => [
+      ...prev,
+      { sender: "bot", text: data.reply },
+    ]);
+  } catch (err) {
+    setMessages(prev => [
+      ...prev,
+      { sender: "bot", text: "Something went wrong 😕 Please try again." },
+    ]);
+  }
+};
+
 
   return (
     <>

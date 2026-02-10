@@ -189,7 +189,7 @@ export const AssessmentProvider = ({ children }) => {
   const finalizeAssessment = (rawResult) => {
     const mergedTraits = {
       ...rawResult.traits,
-      confidence: rawResult.meta?.confidence ?? 0,
+      // confidence: rawResult.meta?.confidence ?? 0,
     };
 
     const normalized = normalizeTraits(mergedTraits);

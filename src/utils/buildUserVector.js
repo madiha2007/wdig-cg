@@ -1,5 +1,5 @@
 import { TRAITS } from "./traits";
 
-export function buildUserVector(profile) {
-  return TRAITS.map(trait => profile[trait] ?? 0);
+export function buildUserVector(responses) {
+  return TRAITS.map(trait => responses[trait] ?? 0);
 }

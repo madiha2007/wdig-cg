@@ -250,7 +250,8 @@ const clusterResults =
 
       <div className="space-y-2">
 {userProfile?.normalizedTraits &&
-  Object.entries(userProfile.normalizedTraits).map(
+  Object.entries(userProfile.normalizedTraits)
+  .filter(([trait]) => trait !== "confidence").map(
     ([trait, score]) => (
       <div key={trait} className="flex justify-between">
         <span className="capitalize">

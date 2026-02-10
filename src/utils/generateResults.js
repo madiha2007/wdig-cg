@@ -1,16 +1,31 @@
-import { CLUSTERS } from "./clusters";
+import { clusters } from "./clusters";
 import { cosineSimilarity } from "./similarity";
 
-export function generateResults(userVector, confidence) {
-  return CLUSTERS.map(cluster => {
-    const similarity = cosineSimilarity(userVector, cluster.vector);
+clusters.forEach((c) => {
+  if (!Array.isArray(c.vector)) {
+    console.error("BROKEN CLUSTER:", c);
+    throw new Error(`Cluster ${c.id} has no valid vector`);
+  }
+});
 
-    const confidenceBoost = 1 + confidence * 0.1; // mild influence
-    const finalScore = similarity * confidenceBoost;
+
+export function generateResults(userVector) {
+  if (!Array.isArray(userVector)) return [];
+
+  const results = clusters.map(cluster => {
+    const similarity =
+      cosineSimilarity(userVector, cluster.vector) || 0;
 
     return {
-      ...cluster,
-      score: finalScore
+      clusterId: cluster.id,
+      clusterName: cluster.name,
+      similarity: Number((similarity * 100).toFixed(1)),
+      careers: cluster.careers,
     };
-  }).sort((a, b) => b.score - a.score);
+  })
+    .filter(r => r.similarity >= 55)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 2);
+
+  return results;
 }

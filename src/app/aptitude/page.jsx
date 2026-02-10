@@ -15,7 +15,7 @@ const AptitudeTest = () => {
   const [selectedOption, setSelectedOption] = useState(null);
   const [skippedQuestions, setSkippedQuestions] = useState(new Set());
   const [questionStartTime, setQuestionStartTime] = useState(null);
-  const [answerTimes, setAnswerTimes] = useState([]);
+  const [answerTimes, setAnswerTimes] = useState({});
 
 
   // ✅ Fetch Questions
@@ -36,7 +36,6 @@ useEffect(() => {
 useEffect(() => {
   setQuestionStartTime(Date.now());
 }, [currentQuestionIndex, currentSectionIndex]);
-
 
   // ✅ Group Questions by Section
   const sections = useMemo(() => {
@@ -85,11 +84,16 @@ useEffect(() => {
   // ✅ Answer Handler
 const handleAnswerSelect = (index) => {
   // ⏱️ record time
-  if (questionStartTime) {
-    const timeTaken =
-      (Date.now() - questionStartTime) / 1000; // seconds
-    setAnswerTimes((prev) => [...prev, timeTaken]);
-  }
+if (questionStartTime) {
+  const timeTaken =
+    (Date.now() - questionStartTime) / 1000;
+
+  setAnswerTimes((prev) => ({
+    ...prev,
+    [currentQuestion.id]: timeTaken,
+  }));
+}
+
 
   setSelectedOption(index);
 
@@ -146,22 +150,33 @@ const handleSubmit = () => {
   const rawTraitScores = evaluateResponses(answers);
 
   // ⏱️ confidence calculation
-  const avgTime =
-    answerTimes.reduce((a, b) => a + b, 0) /
-    Math.max(answerTimes.length, 1);
+const times = Object.values(answerTimes);
+
+const avgTime =
+  times.reduce((a, b) => a + b, 0) /
+  Math.max(times.length, 1);
+
 
   const MAX_TIME = 20; // seconds per question
   const confidence = Math.max(
     0,
     Math.min(1, 1 - avgTime / MAX_TIME)
   );
+// Skip penalty
+  const skipPenalty =
+  skippedQuestions.size / totalQuestions;
+
+const adjustedConfidence =
+  Math.max(0, Math.min(1, confidence - skipPenalty * 0.3));
+
 
   // 📦 package result for context
   const finalResult = {
     traits: rawTraitScores.traits,
     meta: {
       ...rawTraitScores.meta,
-      confidence,
+      confidence: adjustedConfidence,
+
     },
   };
 
@@ -228,10 +243,14 @@ const handleSubmit = () => {
                         setCurrentSectionIndex(sIndex);
                         setCurrentQuestionIndex(qIndex);
                         setSelectedOption(
-                          typeof answers[q.id] === "number"
-                            ? answers[q.id]
+                          answers[q.id] !== undefined
+                            ? currentSection.questions[qIndex].options.findIndex(
+                                (opt, i) =>
+                                  (typeof opt === "object" ? opt.label : i) === answers[q.id]
+                              )
                             : null
                         );
+
                       }}
                       className={`h-8 w-8 rounded text-sm font-medium
                         ${answered ? "bg-green-400 text-white"
