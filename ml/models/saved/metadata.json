@@ -6,7 +6,7 @@
   "n_samples_seen": 251,
   "training_history": [
     {
-      "timestamp": "2026-02-12T13:28:00.773649",
+      "timestamp": "2026-02-20T14:21:10.523535",
       "n_samples": 251,
       "n_clusters": 8,
       "metrics": {
@@ -30,6 +30,6 @@
       }
     }
   ],
-  "created_at": "2026-02-12T13:28:00.791173",
+  "created_at": "2026-02-20T14:21:10.539541",
   "model_version": "1.0.0"
 }

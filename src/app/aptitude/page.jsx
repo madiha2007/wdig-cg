@@ -149,40 +149,19 @@ if (questionStartTime) {
 const handleSubmit = () => {
   const rawTraitScores = evaluateResponses(answers);
 
-  // ⏱️ confidence calculation
-const times = Object.values(answerTimes);
+  const times = Object.values(answerTimes);
+  const avgTime = times.reduce((a, b) => a + b, 0) / Math.max(times.length, 1);
+  const MAX_TIME = 20;
+  const confidence = Math.max(0, Math.min(1, 1 - avgTime / MAX_TIME));
+  const skipPenalty = skippedQuestions.size / totalQuestions;
+  const adjustedConfidence = Math.max(0, Math.min(1, confidence - skipPenalty * 0.3));
 
-const avgTime =
-  times.reduce((a, b) => a + b, 0) /
-  Math.max(times.length, 1);
-
-
-  const MAX_TIME = 20; // seconds per question
-  const confidence = Math.max(
-    0,
-    Math.min(1, 1 - avgTime / MAX_TIME)
-  );
-// Skip penalty
-  const skipPenalty =
-  skippedQuestions.size / totalQuestions;
-
-const adjustedConfidence =
-  Math.max(0, Math.min(1, confidence - skipPenalty * 0.3));
-
-
-  // 📦 package result for context
   const finalResult = {
     traits: rawTraitScores.traits,
-    meta: {
-      ...rawTraitScores.meta,
-      confidence: adjustedConfidence,
-
-    },
+    meta: { ...rawTraitScores.meta, confidence: adjustedConfidence },
   };
 
-  // 🔥 send to AssessmentContext
-  finalizeAssessment(finalResult);
-
+  finalizeAssessment(finalResult, answers); // ← add answers here
   router.push("/results");
 };
 
