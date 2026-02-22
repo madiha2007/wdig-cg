@@ -1,11 +1,24 @@
+// export async function GET() {
+//   try {
+//     const res = await fetch("http://localhost:5000/institutes");
+//     const data = await res.json();
+//     return new Response(JSON.stringify(data), { status: 200 });
+//   } catch (err) {
+//     return new Response(JSON.stringify({ error: "Failed to fetch institutes" }), {
+//       status: 500,
+//     });
+//   }
+// }
+
+
 export async function GET() {
   try {
-    const res = await fetch("http://localhost:5000/institutes");
-    const data = await res.json();
-    return new Response(JSON.stringify(data), { status: 200 });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Failed to fetch institutes" }), {
-      status: 500,
+    const res = await fetch("http://localhost:5000/institutes", {
+      cache: "no-store",
     });
+    const data = await res.json();
+    return Response.json(data);
+  } catch (err) {
+    return Response.json({ error: "Failed to fetch" }, { status: 500 });
   }
 }
