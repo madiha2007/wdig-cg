@@ -1,93 +1,105 @@
 // app/api/careers/route.js
-// O*NET Web Services API integration
-// Sign up free at: https://services.onetcenter.org/
-// Set ONET_USERNAME and ONET_PASSWORD in your .env.local
+// O*NET Web Services API v2.0
+// Base URL: https://api-v2.onetcenter.org
 
-const ONET_BASE = "https://services.onetcenter.org/ws";
-const auth = Buffer.from(
-  `${process.env.ONET_USERNAME}:${process.env.ONET_PASSWORD}`
-).toString("base64");
+const ONET_BASE = "https://api-v2.onetcenter.org";
 
-const headers = {
-  Authorization: `Basic ${auth}`,
-  Accept: "application/json",
-};
+function getHeaders() {
+  return {
+    "X-API-Key": process.env.ONET_API_KEY,
+    Accept: "application/json",
+  };
+}
 
-// Domain keyword → O*NET keyword mapping
 const DOMAIN_KEYWORDS = {
-  Technology: "software",
-  Medicine: "medical",
-  Law: "legal",
-  Finance: "finance",
-  Engineering: "engineering",
-  Arts: "design",
-  Education: "teaching",
-  Business: "management",
+  Technology: "software developer",
+  Medicine: "physician",
+  Engineering: "mechanical engineer",
+  Finance: "financial analyst",
+  Law: "lawyer",
+  Arts: "graphic designer",
+  Education: "teacher",
+  Business: "business manager",
 };
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const domain = searchParams.get("domain") || "Technology";
   const keyword = searchParams.get("keyword") || DOMAIN_KEYWORDS[domain] || domain;
-  const start = parseInt(searchParams.get("start") || "1");
-  const end = parseInt(searchParams.get("end") || "20");
 
   try {
-    // 1. Search for occupations
-    const searchRes = await fetch(
-      `${ONET_BASE}/occupations?keyword=${encodeURIComponent(keyword)}&start=${start}&end=${end}`,
-      { headers }
-    );
+    const searchURL = `${ONET_BASE}/mnm/search?keyword=${encodeURIComponent(keyword)}&end=12`;
+    console.log("Fetching:", searchURL);
 
-    if (!searchRes.ok) throw new Error(`O*NET search failed: ${searchRes.status}`);
+    const searchRes = await fetch(searchURL, { headers: getHeaders() });
+
+    if (!searchRes.ok) {
+      const errText = await searchRes.text();
+      console.error("O*NET search error:", searchRes.status, errText.slice(0, 200));
+      throw new Error(`O*NET search failed: ${searchRes.status}`);
+    }
+
     const searchData = await searchRes.json();
-    const occupations = searchData.occupation || [];
+    const careers = searchData.career || [];
 
-    // 2. Fetch details for each occupation in parallel
+    if (careers.length === 0) {
+      return Response.json({ careers: [], total: 0 });
+    }
+
     const detailed = await Promise.all(
-      occupations.slice(0, 12).map(async (occ) => {
+      careers.slice(0, 12).map(async (career) => {
         try {
-          const [detailRes, wagesRes] = await Promise.all([
-            fetch(`${ONET_BASE}/occupations/${occ.code}/summary`, { headers }),
-            fetch(`${ONET_BASE}/occupations/${occ.code}/details/wages`, { headers }),
+          const code = career.code;
+          const hdrs = getHeaders();
+
+          const [overviewRes, outlookRes, skillsRes, educationRes] = await Promise.all([
+            fetch(`${ONET_BASE}/mnm/careers/${code}/`, { headers: hdrs }),
+            fetch(`${ONET_BASE}/mnm/careers/${code}/job_outlook`, { headers: hdrs }),
+            fetch(`${ONET_BASE}/mnm/careers/${code}/skills`, { headers: hdrs }),
+            fetch(`${ONET_BASE}/mnm/careers/${code}/education`, { headers: hdrs }),
           ]);
 
-          const detail = detailRes.ok ? await detailRes.json() : {};
-          const wagesData = wagesRes.ok ? await wagesRes.json() : {};
+          const overview   = overviewRes.ok  ? await overviewRes.json() : {};
+          const outlook    = outlookRes.ok   ? await outlookRes.json()  : {};
+          const skillsData = skillsRes.ok    ? await skillsRes.json()   : {};
+          const eduData    = educationRes.ok ? await educationRes.json(): {};
 
-          const nationalWage = wagesData.wages?.find((w) => w.scope === "National")
-            || wagesData.wages?.[0];
+          const skills = (skillsData.element || []).slice(0, 5).map((s) => s.name);
+          const education = eduData.education?.level_required?.category?.[0]?.name || "Bachelor's Degree";
+
+          const wage = outlook.salary;
+          const salary = wage ? {
+            median: wage.annual_median_over || wage.annual_median,
+            low: wage.annual_10th_percentile,
+            high: wage.annual_90th_percentile,
+            hourly_median: wage.hourly_median,
+          } : null;
 
           return {
-            id: occ.code,
-            title: occ.title,
+            id: code,
+            title: career.title,
             domain,
-            description: detail.description || occ.title,
-            bright_outlook: detail.bright_outlook || false,
-            in_demand: detail.in_demand || false,
-            education: detail.education?.level_required?.category?.[0]?.name || "Bachelor's Degree",
-            skills: (detail.skills?.element || [])
-              .slice(0, 5)
-              .map((s) => s.name),
-            salary: nationalWage
-              ? {
-                  median: nationalWage.annual_median,
-                  low: nationalWage.annual_10th_percentile,
-                  high: nationalWage.annual_90th_percentile,
-                }
-              : null,
-            growth: detail.job_outlook?.outlook?.description || null,
-            onet_link: `https://www.onetonline.org/link/summary/${occ.code}`,
+            description: overview.what_they_do || "",
+            bright_outlook: !!(overview.tags?.bright_outlook),
+            in_demand: !!(overview.tags?.in_demand),
+            education,
+            skills,
+            salary,
+            growth: outlook.outlook?.description || null,
+            onet_link: `https://www.onetonline.org/link/summary/${code}`,
           };
-        } catch {
+        } catch (err) {
+          console.error(`Error for ${career.code}:`, err.message);
           return {
-            id: occ.code,
-            title: occ.title,
+            id: career.code,
+            title: career.title,
             domain,
             description: "",
             skills: [],
             salary: null,
             growth: null,
+            bright_outlook: false,
+            in_demand: false,
           };
         }
       })
@@ -95,8 +107,7 @@ export async function GET(request) {
 
     return Response.json({ careers: detailed, total: searchData.total || detailed.length });
   } catch (err) {
-    console.error("O*NET API error:", err);
+    console.error("O*NET API error:", err.message);
     return Response.json({ error: err.message }, { status: 500 });
   }
 }
-
