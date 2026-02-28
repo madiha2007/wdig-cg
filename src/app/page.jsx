@@ -7,10 +7,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function HomePage() {
-    const router = useRouter();
+  const router = useRouter();
   const [hasResult, setHasResult] = useState(false);
 
   useEffect(() => {
+    // If logged in, redirect to dashboard
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user) {
+      router.replace("/dashboard");
+      return;
+    }
+
     const stored = localStorage.getItem("aptitudeResult");
     setHasResult(!!stored);
   }, []);
@@ -43,45 +50,49 @@ export default function HomePage() {
             connect with mentors, and explore trending careers.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+   {/* Aptitude Test */}
+      <div className="flex justify-center">
+        {hasResult ? (
+          <button
+            onClick={() => router.push("/results")}
+            className="
+              px-8 py-3
+              text-lg font-semibold
+              bg-green-500 text-white
+              rounded-xl
+              shadow-md
+              hover:bg-green-600
+              transition
+            "
+          >
+            View My Results
+          </button>
+        ) : (
+          <button
+            onClick={() => router.push("/aptitude")}
+            className="
+              px-20 py-3
+              text-xl font-semibold
+              bg-gradient-to-r from-purple-500 to-pink-500
+              text-white
+              rounded-xl
+              shadow-md
+              hover:opacity-90
+              transition
+            "
+          >
+            Take Aptitude Test
+            <Image
+              src="/assets/test.png"
+              alt="Arrow Right"
+              width={40}
+              height={40}
+              className="inline-block ml-2">
 
-            {/* AI Assistant */}
-            <Link href="/chatbot">
-              <button className="w-full sm:w-max px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl shadow-md hover:opacity-90 transition flex items-center gap-3">
-                <span>Meet Your Personal AI Assistant</span>
-                <Image
-                  src="/assets/bot.png"
-                  alt="AI Assistant"
-                  width={48}
-                  height={48}
-                />
-              </button>
-            </Link> 
-
-            {/* Aptitude Test */}
-          {hasResult ? (
-              <button
-                onClick={() => router.push("/results")}
-                className="px-18 py-4 
-                text-lg font-semibold 
-                bg-green-500 text-white 
-                rounded-2xl 
-                shadow-lg 
-                hover:bg-green-600 
-                transition"
-              >
-                View My Results
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push("/aptitude")}
-                className="px-6 py-2 border-2 border-black rounded-xl"
-              >
-                Take Aptitude Test
-              </button>
-            )}
-
-          </div>
+            </Image>
+          </button>
+        )}
+      </div>
         </div> 
 
         {/* Right Image */}

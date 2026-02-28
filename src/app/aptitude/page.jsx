@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { evaluateResponses } from "@/utils/evaluateResponses";
 import { useAssessment } from "@/app/context/AssessmentContext";
@@ -16,6 +16,7 @@ const AptitudeTest = () => {
   const [skippedQuestions, setSkippedQuestions] = useState(new Set());
   const [questionStartTime, setQuestionStartTime] = useState(null);
   const [answerTimes, setAnswerTimes] = useState({});
+  const hasSubmitted = useRef(false);
 
 
   // ✅ Fetch Questions
@@ -146,9 +147,22 @@ if (questionStartTime) {
   };
 
   // ✅ Submit
-const handleSubmit = () => {
+// ================================================================
+//  ONLY REPLACE the handleSubmit function in your AptitudeTest.jsx
+//  Everything else stays exactly the same.
+//  
+//  Find your current handleSubmit and replace it with this:
+// ================================================================
+
+const handleSubmit = async () => {
+
+    if (hasSubmitted.current) return;
+  hasSubmitted.current = true;
+  
+  // 1. Build raw trait scores from answers (your existing evaluateResponses)
   const rawTraitScores = evaluateResponses(answers);
 
+  // 2. Compute confidence from timing
   const times = Object.values(answerTimes);
   const avgTime = times.reduce((a, b) => a + b, 0) / Math.max(times.length, 1);
   const MAX_TIME = 20;
@@ -161,7 +175,26 @@ const handleSubmit = () => {
     meta: { ...rawTraitScores.meta, confidence: adjustedConfidence },
   };
 
-  finalizeAssessment(finalResult, answers); // ← add answers here
+  // 3. Call Node API → Python ML
+  let mlResult = null;
+  try {
+    const res = await fetch("http://localhost:5000/api/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      mlResult = data.prediction; // ← the Python ML response
+    } else {
+      console.warn("ML API returned error:", res.status);
+    }
+  } catch (err) {
+    console.warn("ML API unavailable, continuing without prediction:", err.message);
+  }
+
+  // 4. Finalize — store everything in context
+  finalizeAssessment(finalResult, answers, mlResult);
   router.push("/results");
 };
 
