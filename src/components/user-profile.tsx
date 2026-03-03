@@ -1,759 +1,791 @@
 "use client";
 
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
-import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import {
-  User,
-  Mail,
-  Phone,
-  GraduationCap,
-  Edit3,
-  Target,
-  TrendingUp,
-  Award,
-  Clock,
-  Bell,
-  Moon,
-  LogOut,
-  ChevronRight,
-  Sparkles,
-  Brain,
-  Heart,
-  Zap,
-  CheckCircle2,
-  Settings,
-  Download,
-  Share2,
-  Calendar,
-  MapPin,
-  Briefcase,
-  Code,
-  Palette,
-  MessageCircle,
-  BookOpen,
+  User, Mail, Phone, GraduationCap, MapPin, Edit3, Award,
+  Clock, Bell, Moon, LogOut, Sparkles, Brain, CheckCircle2,
+  Settings, Download, Share2, Calendar, Briefcase, Target,
+  X, Camera, Save, Loader2, Plus, Music,
 } from "lucide-react";
+import { auth, db } from "../../firebase";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
-import { auth } from "../../firebase";
-import ProfileEditForm from "./profile-edit-form";
+/* ─── Types ───────────────────────────────────────────────────────────────── */
+interface UserData {
+  name: string; email: string; phone: string; education: string;
+  location: string; bio: string; photoURL: string | null;
+  role: "Student"|"Working"|"Freelancer"|"Job Seeker"|"Other";
+  createdAt: string; interests: string[]; hobbies: string[];
+}
+interface AssessmentResult {
+  thinking_style?: { primary?: { label: string; description: string }; secondary?: { label: string } };
+  top_careers?: { name: string; emerging?: boolean }[];
+  moderate_careers?: { name: string }[];
+  dominant_traits?: { trait: string; score: number }[];
+  dimension_scores?: Record<string, number>;
+  normalizedTraits?: Record<string, number>;
+}
+interface ActivityItem { id: string; type: string; title: string; date: any; icon: string; }
 
-// Mock data - replace with actual API calls
-const mockUser = {
-  name: "Alex Johnson",
-  email: "alex.johnson@example.com",
-  role: "Student",
-  avatar: null, // Will use initials fallback
-  phone: "+1 234 567 8900",
-  education: "Undergraduate",
-  location: "Mumbai, India",
-  joinedDate: "January 2024",
-  bio: "Passionate about technology and helping others find their career path",
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+const LABELS: Record<string,string> = {
+  logical:"Logical Reasoning",analytical:"Analytical Thinking",numerical:"Numerical Ability",
+  verbal:"Verbal Ability",spatial:"Spatial Reasoning",creativity:"Creativity",
+  discipline:"Discipline",resilience:"Resilience",independence:"Independence",
+  adaptability:"Adaptability",growth_mindset:"Growth Mindset",risk_appetite:"Risk Appetite",
+  depth_focus:"Depth of Focus",confidence:"Confidence",stress_tolerance:"Stress Tolerance",
+  accountability:"Accountability",initiative:"Initiative",problem_solving:"Problem Solving",
+  intrinsic_motivation:"Intrinsic Motivation",purpose_drive:"Purpose Drive",
+  passion_signal:"Passion Signal",learning_orientation:"Learning Orientation",
+  communication:"Communication",leadership:"Leadership",teamwork:"Teamwork",
+  empathy:"Empathy",emotional_intelligence:"Emotional Intelligence",
+  helping_orientation:"Helping Orientation",
+};
+const label = (k: string) => LABELS[k] ?? k.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+const initials = (n: string) => n.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+const relTime = (ts: any) => {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const m = Math.floor((Date.now()-d.getTime())/60000);
+  if (m<60) return `${m}m ago`;
+  if (m<1440) return `${Math.floor(m/60)}h ago`;
+  if (m<10080) return `${Math.floor(m/1440)}d ago`;
+  return d.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
 };
 
-const mockStats = {
-  assessmentsTaken: 3,
-  savedCareers: 12,
-  progressPercentage: 68,
-  skillsAnalyzed: 15,
-};
-
-const mockSkills = [
-  { name: "Logical Reasoning", score: 85, icon: <Brain className="w-4 h-4" /> },
-  { name: "Creativity", score: 72, icon: <Palette className="w-4 h-4" /> },
-  { name: "Communication", score: 90, icon: <MessageCircle className="w-4 h-4" /> },
-  { name: "Technical Skills", score: 78, icon: <Code className="w-4 h-4" /> },
-  { name: "Leadership", score: 65, icon: <Award className="w-4 h-4" /> },
-];
-
-const mockInterests = [
-  "UI/UX Design",
-  "Data Science",
-  "Product Management",
-  "Artificial Intelligence",
-  "Digital Marketing",
-  "Software Engineering",
-];
-
-const mockCareers = [
-  {
-    id: 1,
-    title: "UX Designer",
-    match: 94,
-    icon: <Palette className="w-5 h-5" />,
-    color: "from-purple-500 to-pink-500",
-  },
-  {
-    id: 2,
-    title: "Data Analyst",
-    match: 87,
-    icon: <TrendingUp className="w-5 h-5" />,
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    id: 3,
-    title: "Product Manager",
-    match: 82,
-    icon: <Briefcase className="w-5 h-5" />,
-    color: "from-orange-500 to-amber-500",
-  },
-  {
-    id: 4,
-    title: "Software Engineer",
-    match: 79,
-    icon: <Code className="w-5 h-5" />,
-    color: "from-green-500 to-emerald-500",
-  },
-];
-
-const mockActivity = [
-  {
-    id: 1,
-    type: "assessment",
-    title: "Completed Aptitude Test",
-    date: "2 days ago",
-    icon: <CheckCircle2 className="w-5 h-5" />,
-    color: "bg-green-500",
-  },
-  {
-    id: 2,
-    type: "career",
-    title: "Explored UX Designer Path",
-    date: "5 days ago",
-    icon: <MapPin className="w-5 h-5" />,
-    color: "bg-purple-500",
-  },
-  {
-    id: 3,
-    type: "update",
-    title: "Updated Profile Information",
-    date: "1 week ago",
-    icon: <User className="w-5 h-5" />,
-    color: "bg-blue-500",
-  },
-  {
-    id: 4,
-    type: "assessment",
-    title: "Started Skills Assessment",
-    date: "2 weeks ago",
-    icon: <Brain className="w-5 h-5" />,
-    color: "bg-orange-500",
-  },
-];
-
-export default function UserProfile() {
-  const [user, setUser] = useState(mockUser);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [hoveredStat, setHoveredStat] = useState<number | null>(null);
-  const containerRef = useRef(null);
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
-
-  const headerY = useTransform(scrollYProgress, [0, 0.3], [0, -50]);
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
-
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged((firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          ...user,
-          name: firebaseUser.displayName || user.name,
-          email: firebaseUser.email || user.email,
-          avatar: firebaseUser.photoURL || null,
-        });
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-   const handleSaveProfile = (updatedData: typeof mockUser) => {
-    // Save to backend
-    console.log('Saving:', updatedData);
-    // Update local state
-    setUser(updatedData);
-  };
-
-
-  useEffect(() => {
-  if (darkMode) {
-    document.documentElement.classList.add("dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-  }
-}, [darkMode]);
-
-
+/* ─── Skill Bar ───────────────────────────────────────────────────────────── */
+function SkillBar({ name, score, i }: { name: string; score: number; i: number }) {
+  const [w, setW] = useState(0);
+  useEffect(() => { const t = setTimeout(()=>setW(score), 400+i*60); return ()=>clearTimeout(t); },[score,i]);
+  const color = score>=70 ? "#2563eb" : score>=50 ? "#7c3aed" : "#94a3b8";
   return (
-    <div
-      ref={containerRef}
-      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors duration-500"
-    >
-      {/* Decorative Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            rotate: [90, 0, 90],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-24 -left-24 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl"
-        />
+    <div style={{marginBottom:"1.1rem"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem",alignItems:"center"}}>
+        <span style={{fontSize:"0.78rem",fontWeight:600,color:"#334155",letterSpacing:"0.01em"}}>{name}</span>
+        <span style={{fontSize:"0.72rem",fontWeight:700,color,fontVariantNumeric:"tabular-nums"}}>{score}%</span>
       </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Profile Header */}
-        <motion.section
-          style={{ y: headerY, opacity: headerOpacity }}
-          className="relative"
-        >
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
-            {/* Gradient Background Pattern */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5" />
-            
-            <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8">
-              {/* Avatar with Animated Ring */}
-              <div className="relative group">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-2 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full opacity-75 blur-lg group-hover:opacity-100 transition-opacity"
-                />
-                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 p-1">
-                  {user.avatar ? (
-                    <Image
-                      src={user.avatar}
-                      alt={user.name}
-                      width={128}
-                      height={128}
-                      className="rounded-full w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-white dark:bg-slate-800 flex items-center justify-center">
-                      <span className="text-4xl font-bold bg-gradient-to-br from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                        {getInitials(user.name)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Status Indicator */}
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 rounded-full border-4 border-white dark:border-slate-900"
-                />
-              </div>
-
-              {/* User Info */}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 dark:from-white dark:via-purple-200 dark:to-white bg-clip-text text-transparent">
-                    {user.name}
-                  </h1>
-                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm font-medium shadow-lg">
-                    <Sparkles className="w-4 h-4" />
-                    {user.role}
-                  </span>
-                </div>
-
-                <div className="space-y-2 text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center justify-center md:justify-start gap-2">
-                    <Mail className="w-4 h-4" />
-                    <span>{user.email}</span>
-                  </div>
-                  <div className="flex items-center justify-center md:justify-start gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{user.location}</span>
-                  </div>
-                  <div className="flex items-center justify-center md:justify-start gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Joined {user.joinedDate}</span>
-                  </div>
-                </div>
-
-                <p className="mt-4 text-slate-700 dark:text-slate-300 max-w-2xl">
-                  {user.bio}
-                </p>
-              </div>
-
-              {/* Edit Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEditMode(!isEditMode)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transition-shadow"
-              >
-                <Edit3 className="w-4 h-4" />
-                Edit Profile
-              </motion.button>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Stats Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            {
-              label: "Assessments Taken",
-              value: mockStats.assessmentsTaken,
-              icon: <CheckCircle2 className="w-6 h-6" />,
-              color: "from-green-500 to-emerald-500",
-              bgColor: "bg-green-500/10",
-            },
-            {
-              label: "Saved Careers",
-              value: mockStats.savedCareers,
-              icon: <Heart className="w-6 h-6" />,
-              color: "from-pink-500 to-rose-500",
-              bgColor: "bg-pink-500/10",
-            },
-            {
-              label: "Progress",
-              value: `${mockStats.progressPercentage}%`,
-              icon: <TrendingUp className="w-6 h-6" />,
-              color: "from-blue-500 to-cyan-500",
-              bgColor: "bg-blue-500/10",
-            },
-            {
-              label: "Skills Analyzed",
-              value: mockStats.skillsAnalyzed,
-              icon: <Brain className="w-6 h-6" />,
-              color: "from-purple-500 to-violet-500",
-              bgColor: "bg-purple-500/10",
-            },
-          ].map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -8, scale: 1.02 }}
-              onHoverStart={() => setHoveredStat(index)}
-              onHoverEnd={() => setHoveredStat(null)}
-              className="relative group"
-            >
-              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-700/50 hover:shadow-2xl transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
-                    <div className={`bg-gradient-to-br ${stat.color} bg-clip-text text-transparent`}>
-                      {stat.icon}
-                    </div>
-                  </div>
-                  <motion.div
-                    animate={{
-                      rotate: hoveredStat === index ? 360 : 0,
-                    }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <Sparkles className={`w-5 h-5 ${hoveredStat === index ? 'text-yellow-500' : 'text-slate-400'}`} />
-                  </motion.div>
-                </div>
-
-                <motion.div
-                  animate={{ scale: hoveredStat === index ? 1.1 : 1 }}
-                  className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-1"
-                >
-                  {stat.value}
-                </motion.div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  {stat.label}
-                </div>
-
-                {/* Progress Bar for Progress stat */}
-                {stat.label === "Progress" && (
-                  <div className="mt-4 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${mockStats.progressPercentage}%` }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                      className={`h-full bg-gradient-to-r ${stat.color}`}
-                    />
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </section>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Skills & Interests */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Skills Overview */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Skill Strengths
-                </h2>
-                <Brain className="w-6 h-6 text-purple-600" />
-              </div>
-
-              <div className="space-y-4">
-                {mockSkills.map((skill, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
-                    className="group"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="text-purple-600 dark:text-purple-400">
-                          {skill.icon}
-                        </div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">
-                          {skill.name}
-                        </span>
-                      </div>
-                      <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                        {skill.score}%
-                      </span>
-                    </div>
-                    <div className="h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${skill.score}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.2 + index * 0.1 }}
-                        className="h-full bg-gradient-to-r from-purple-500 to-blue-500 group-hover:from-purple-600 group-hover:to-blue-600 transition-all"
-                      />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.section>
-
-            {/* Career Interests */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Career Interests
-                </h2>
-                <Target className="w-6 h-6 text-blue-600" />
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {mockInterests.map((interest, index) => (
-                  <motion.span
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.6 + index * 0.05 }}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-200 dark:border-purple-800 text-slate-700 dark:text-slate-300 font-medium hover:border-purple-400 dark:hover:border-purple-600 transition-colors cursor-pointer"
-                  >
-                    {interest}
-                  </motion.span>
-                ))}
-              </div>
-            </motion.section>
-
-            {/* Recommended Careers Carousel */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Recommended Career Paths
-                </h2>
-                <Award className="w-6 h-6 text-orange-600" />
-              </div>
-
-              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-8 px-8">
-                {mockCareers.map((career, index) => (
-                  <motion.div
-                    key={career.id}
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.7 + index * 0.1 }}
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className="min-w-[280px] snap-center"
-                  >
-                    <div className="h-full bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-200 dark:border-slate-700 hover:shadow-2xl transition-all">
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${career.color} flex items-center justify-center text-white mb-4`}>
-                        {career.icon}
-                      </div>
-
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                        {career.title}
-                      </h3>
-
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                          {career.match}%
-                        </span>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                          Match
-                        </span>
-                      </div>
-
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="w-full py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center justify-center gap-2"
-                      >
-                        Explore
-                        <ChevronRight className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.section>
-          </div>
-
-          {/* Right Column - Activity & Settings */}
-          <div className="space-y-8">
-            {/* Activity Timeline */}
-            <motion.section
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Recent Activity
-                </h2>
-                <Clock className="w-6 h-6 text-slate-600" />
-              </div>
-
-              <div className="space-y-4">
-                {mockActivity.map((activity, index) => (
-                  <motion.div
-                    key={activity.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative flex gap-4 group"
-                  >
-                    {/* Connector Line */}
-                    {index < mockActivity.length - 1 && (
-                      <div className="absolute left-5 top-12 w-px h-12 bg-slate-200 dark:bg-slate-700" />
-                    )}
-
-                    <div className={`w-10 h-10 ${activity.color} rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform`}>
-                      {activity.icon}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 dark:text-white truncate">
-                        {activity.title}
-                      </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {activity.date}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.section>
-
-            {/* Quick Settings */}
-            <motion.section
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8 }}
-              className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-slate-200/50 dark:border-slate-700/50"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Quick Settings
-                </h2>
-                <Settings className="w-6 h-6 text-slate-600" />
-              </div>
-
-              <div className="space-y-4">
-                {/* Notifications Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <Bell className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                    <span className="font-medium text-slate-700 dark:text-slate-300">
-                      Notifications
-                    </span>
-                  </div>
-                  <motion.button
-                    onClick={() => setNotifications(!notifications)}
-                    className={`relative w-14 h-8 rounded-full transition-colors ${
-                      notifications
-                        ? "bg-gradient-to-r from-purple-500 to-blue-500"
-                        : "bg-slate-300 dark:bg-slate-600"
-                    }`}
-                  >
-                    <motion.div
-                      animate={{ x: notifications ? 24 : 2 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg"
-                    />
-                  </motion.button>
-                </div>
-
-                {/* Dark Mode Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <Moon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                    <span className="font-medium text-slate-700 dark:text-slate-300">
-                      Dark Mode
-                    </span>
-                  </div>
-                  <motion.button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className={`relative w-14 h-8 rounded-full transition-colors ${
-                      darkMode
-                        ? "bg-gradient-to-r from-purple-500 to-blue-500"
-                        : "bg-slate-300 dark:bg-slate-600"
-                    }`}
-                  >
-                    <motion.div
-                      animate={{ x: darkMode ? 24 : 2 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg"
-                    />
-                  </motion.button>
-                </div>
-
-                {/* Action Buttons */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-between group"
-                >
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    Download Report
-                  </span>
-                  <Download className="w-5 h-5 text-slate-600 dark:text-slate-400 group-hover:text-purple-600 transition-colors" />
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-between group"
-                >
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    Share Profile
-                  </span>
-                  <Share2 className="w-5 h-5 text-slate-600 dark:text-slate-400 group-hover:text-blue-600 transition-colors" />
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowLogoutModal(true)}
-                  className="w-full p-4 rounded-xl bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-between group"
-                >
-                  <span className="font-medium text-red-600 dark:text-red-400">
-                    Logout
-                  </span>
-                  <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
-                </motion.button>
-              </div>
-            </motion.section>
-          </div>
-        </div>
+      <div style={{height:5,background:"#e2e8f0",borderRadius:99,overflow:"hidden",position:"relative"}}>
+        <motion.div
+          initial={{width:0}} animate={{width:`${w}%`}}
+          transition={{duration:0.9,ease:[0.16,1,0.3,1],delay:i*0.05}}
+          style={{position:"absolute",top:0,left:0,height:"100%",borderRadius:99,
+            background:`linear-gradient(90deg,${color},${score>=70?"#7c3aed":score>=50?"#2563eb":"#cbd5e1"})`}} />
       </div>
-
-      {/* Logout Confirmation Modal */}
-      <AnimatePresence>
-        {showLogoutModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowLogoutModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700"
-            >
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <LogOut className="w-8 h-8 text-red-600 dark:text-red-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                  Logout
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Are you sure you want to logout? You'll need to sign in again to access your profile.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowLogoutModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    auth.signOut();
-                    setShowLogoutModal(false);
-                  }}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-shadow"
-                >
-                  Logout
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Custom Scrollbar Styles */}
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }
 
+/* ─── Toggle ──────────────────────────────────────────────────────────────── */
+function Toggle({ on, onToggle }: { on:boolean; onToggle:()=>void }) {
+  return (
+    <motion.button onClick={onToggle} style={{position:"relative",width:44,height:24,borderRadius:99,border:"none",
+      background:on?"#2563eb":"#cbd5e1",cursor:"pointer",flexShrink:0,padding:0}}>
+      <motion.div animate={{x:on?22:2}} transition={{type:"spring",stiffness:600,damping:35}}
+        style={{position:"absolute",top:2,width:20,height:20,borderRadius:"50%",background:"#fff",
+          boxShadow:"0 1px 4px rgba(0,0,0,0.15)"}} />
+    </motion.button>
+  );
+}
+
+/* ─── Tag Input ───────────────────────────────────────────────────────────── */
+function TagInput({ label:lbl, icon, tags, onUpdate, placeholder, color="#2563eb" }: {
+  label:string; icon:React.ReactNode; tags:string[];
+  onUpdate:(t:string[])=>void; placeholder:string; color?:string;
+}) {
+  const [val, setVal] = useState("");
+  const add = () => { const v=val.trim(); if(v&&!tags.includes(v)) onUpdate([...tags,v]); setVal(""); };
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"1rem"}}>
+        <span style={{color}}>{icon}</span>
+        <h3 style={{fontSize:"0.95rem",fontWeight:700,color:"#0f172a",margin:0,letterSpacing:"-0.01em"}}>{lbl}</h3>
+      </div>
+      <div style={{display:"flex",gap:"0.5rem",marginBottom:"0.9rem"}}>
+        <input value={val} onChange={e=>setVal(e.target.value)} placeholder={placeholder}
+          onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();add();}}}
+          style={{flex:1,padding:"0.6rem 0.9rem",borderRadius:10,border:"1.5px solid #e2e8f0",
+            background:"#f8fafc",fontSize:"0.82rem",color:"#0f172a",outline:"none",fontFamily:"inherit",
+            transition:"border-color 0.2s"}}
+          onFocus={e=>e.target.style.borderColor=color} onBlur={e=>e.target.style.borderColor="#e2e8f0"} />
+        <motion.button whileTap={{scale:0.93}} onClick={add} type="button"
+          style={{padding:"0.6rem 1rem",borderRadius:10,border:"none",background:color,
+            color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:4,
+            fontSize:"0.78rem",fontWeight:700,fontFamily:"inherit",letterSpacing:"0.02em"}}>
+          <Plus size={13}/> Add
+        </motion.button>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem"}}>
+        <AnimatePresence>
+          {tags.map(t=>(
+            <motion.span key={t} initial={{scale:0,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:0,opacity:0}}
+              style={{display:"inline-flex",alignItems:"center",gap:4,padding:"0.28rem 0.7rem",
+                borderRadius:99,background:`${color}12`,border:`1.5px solid ${color}25`,
+                fontSize:"0.76rem",fontWeight:600,color:"#1e293b"}}>
+              {t}
+              <button onClick={()=>onUpdate(tags.filter(x=>x!==t))}
+                style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",color:"#94a3b8",lineHeight:1}}>
+                <X size={10}/>
+              </button>
+            </motion.span>
+          ))}
+        </AnimatePresence>
+        {tags.length===0 && <span style={{fontSize:"0.74rem",color:"#94a3b8",fontStyle:"italic"}}>No {lbl.toLowerCase()} added yet</span>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Edit Field ──────────────────────────────────────────────────────────── */
+function EditField({lbl,icon,value,onChange,placeholder,type="text"}: {
+  lbl:string;icon:React.ReactNode;value:string;onChange:(v:string)=>void;placeholder:string;type?:string;
+}) {
+  const [focus,setFocus] = useState(false);
+  return (
+    <div>
+      <label style={{display:"flex",alignItems:"center",gap:5,fontSize:"0.68rem",fontWeight:700,
+        color:"#64748b",marginBottom:"0.35rem",textTransform:"uppercase",letterSpacing:"0.08em"}}>
+        {icon} {lbl}
+      </label>
+      <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+        onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)}
+        style={{width:"100%",padding:"0.65rem 0.9rem",borderRadius:10,
+          border:`1.5px solid ${focus?"#2563eb":"#e2e8f0"}`,background:"#f8fafc",
+          fontSize:"0.85rem",color:"#0f172a",outline:"none",fontFamily:"inherit",
+          boxSizing:"border-box",transition:"border-color 0.18s"}} />
+    </div>
+  );
+}
+
+/* ─── Edit Modal ──────────────────────────────────────────────────────────── */
+function EditModal({open,onClose,userData,onSave}: {
+  open:boolean;onClose:()=>void;userData:UserData;onSave:(d:Partial<UserData>)=>Promise<void>;
+}) {
+  const [form,setForm] = useState(userData);
+  const [saving,setSaving] = useState(false);
+  const [preview,setPreview] = useState<string|null>(userData.photoURL);
+  useEffect(()=>{setForm(userData);setPreview(userData.photoURL);},[userData]);
+  const handleImg = (e:React.ChangeEvent<HTMLInputElement>) => {
+    const f=e.target.files?.[0]; if(!f) return;
+    const r=new FileReader(); r.onloadend=()=>setPreview(r.result as string); r.readAsDataURL(f);
+  };
+  const submit = async(e:React.FormEvent)=>{
+    e.preventDefault(); setSaving(true);
+    await onSave({...form,photoURL:preview});
+    setSaving(false); onClose();
+  };
+  return (
+    <AnimatePresence>
+      {open&&(
+        <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+          style={{position:"fixed",inset:0,zIndex:50,display:"flex",alignItems:"center",
+            justifyContent:"center",padding:"1rem",background:"rgba(2,6,23,0.6)",
+            backdropFilter:"blur(8px)",overflowY:"auto"}}
+          onClick={onClose}>
+          <motion.div initial={{scale:0.94,y:20,opacity:0}} animate={{scale:1,y:0,opacity:1}}
+            exit={{scale:0.94,y:20,opacity:0}} transition={{type:"spring",damping:28,stiffness:340}}
+            onClick={e=>e.stopPropagation()}
+            style={{background:"#fff",borderRadius:24,maxWidth:580,width:"100%",
+              boxShadow:"0 32px 80px rgba(0,0,0,0.18)",overflow:"hidden",margin:"2rem 0"}}>
+
+            {/* top bar */}
+            <div style={{height:4,background:"linear-gradient(90deg,#2563eb,#7c3aed)"}}/>
+            <div style={{padding:"1.5rem 1.75rem 1.25rem",borderBottom:"1px solid #f1f5f9"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <h2 style={{fontSize:"1.2rem",fontWeight:800,color:"#0f172a",margin:0,letterSpacing:"-0.02em"}}>Edit Profile</h2>
+                  <p style={{fontSize:"0.75rem",color:"#94a3b8",marginTop:"0.15rem"}}>Keep your information up to date</p>
+                </div>
+                <button onClick={onClose} style={{width:30,height:30,borderRadius:"50%",border:"1px solid #e2e8f0",
+                  background:"#f8fafc",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#64748b"}}>
+                  <X size={14}/>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={submit} style={{padding:"1.5rem 1.75rem"}}>
+              {/* avatar */}
+              <div style={{display:"flex",justifyContent:"center",marginBottom:"1.5rem"}}>
+                <div style={{position:"relative"}}>
+                  <div style={{width:80,height:80,borderRadius:"50%",padding:3,background:"linear-gradient(135deg,#2563eb,#7c3aed)"}}>
+                    <div style={{width:"100%",height:"100%",borderRadius:"50%",overflow:"hidden",
+                      background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {preview?<img src={preview} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                        :<User size={28} color="#2563eb"/>}
+                    </div>
+                  </div>
+                  <label htmlFor="modal-avatar" style={{position:"absolute",bottom:0,right:0,width:26,height:26,
+                    borderRadius:"50%",background:"#2563eb",display:"flex",alignItems:"center",
+                    justifyContent:"center",cursor:"pointer",border:"2px solid #fff"}}>
+                    <Camera size={11} color="#fff"/>
+                    <input id="modal-avatar" type="file" accept="image/*" onChange={handleImg} style={{display:"none"}}/>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.85rem 1rem"}}>
+                <EditField lbl="Full Name" icon={<User size={11}/>} value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="Your name"/>
+                <div>
+                  <label style={{display:"flex",alignItems:"center",gap:5,fontSize:"0.68rem",fontWeight:700,
+                    color:"#94a3b8",marginBottom:"0.35rem",textTransform:"uppercase",letterSpacing:"0.08em"}}>
+                    <Mail size={11}/> Email <span style={{background:"#f1f5f9",borderRadius:99,padding:"0.05rem 0.4rem",fontSize:"0.6rem",marginLeft:2}}>locked</span>
+                  </label>
+                  <div style={{padding:"0.65rem 0.9rem",background:"#f8fafc",borderRadius:10,
+                    border:"1px solid #f1f5f9",color:"#94a3b8",fontSize:"0.82rem"}}>{form.email}</div>
+                </div>
+                <EditField lbl="Phone" icon={<Phone size={11}/>} value={form.phone} onChange={v=>setForm(p=>({...p,phone:v}))} placeholder="+91 98765 43210" type="tel"/>
+                <EditField lbl="Location" icon={<MapPin size={11}/>} value={form.location} onChange={v=>setForm(p=>({...p,location:v}))} placeholder="City, Country"/>
+              </div>
+
+              {[
+                {lbl:"Current Status",icon:<Briefcase size={11}/>,key:"role",opts:["Student","Working","Freelancer","Job Seeker","Other"]},
+                {lbl:"Education",icon:<GraduationCap size={11}/>,key:"education",opts:["High School","Undergraduate","Graduate","Postgraduate","Professional"]},
+              ].map(({lbl,icon,key,opts})=>(
+                <div key={key} style={{marginTop:"0.85rem"}}>
+                  <label style={{display:"flex",alignItems:"center",gap:5,fontSize:"0.68rem",fontWeight:700,
+                    color:"#64748b",marginBottom:"0.35rem",textTransform:"uppercase",letterSpacing:"0.08em"}}>
+                    {icon} {lbl}
+                  </label>
+                  <select value={(form as any)[key]} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))}
+                    style={{width:"100%",padding:"0.65rem 0.9rem",borderRadius:10,border:"1px solid #e2e8f0",
+                      background:"#f8fafc",fontSize:"0.85rem",color:"#0f172a",outline:"none",fontFamily:"inherit"}}>
+                    {opts.map(o=><option key={o}>{o}</option>)}
+                  </select>
+                </div>
+              ))}
+
+              <div style={{marginTop:"0.85rem"}}>
+                <label style={{fontSize:"0.68rem",fontWeight:700,color:"#64748b",display:"block",
+                  marginBottom:"0.35rem",textTransform:"uppercase",letterSpacing:"0.08em"}}>About You</label>
+                <textarea value={form.bio} onChange={e=>setForm(p=>({...p,bio:e.target.value}))} rows={3}
+                  placeholder="Tell the world what drives you..."
+                  style={{width:"100%",padding:"0.65rem 0.9rem",borderRadius:10,border:"1px solid #e2e8f0",
+                    background:"#f8fafc",fontSize:"0.85rem",color:"#0f172a",resize:"none",outline:"none",
+                    fontFamily:"inherit",boxSizing:"border-box"}}/>
+              </div>
+
+              <div style={{display:"flex",gap:"0.65rem",marginTop:"1.4rem"}}>
+                <button type="button" onClick={onClose}
+                  style={{flex:1,padding:"0.7rem",borderRadius:11,border:"1px solid #e2e8f0",
+                    background:"#f8fafc",color:"#64748b",fontWeight:600,fontSize:"0.83rem",cursor:"pointer",fontFamily:"inherit"}}>
+                  Cancel
+                </button>
+                <motion.button type="submit" disabled={saving} whileTap={{scale:0.96}}
+                  style={{flex:2,padding:"0.7rem",borderRadius:11,border:"none",
+                    background:"linear-gradient(135deg,#2563eb,#7c3aed)",color:"#fff",fontWeight:700,
+                    fontSize:"0.83rem",cursor:saving?"not-allowed":"pointer",display:"flex",
+                    alignItems:"center",justifyContent:"center",gap:"0.4rem",fontFamily:"inherit",opacity:saving?0.7:1}}>
+                  {saving?<><Loader2 size={13} style={{animation:"spin 1s linear infinite"}}/> Saving…</>
+                    :<><Save size={13}/> Save Changes</>}
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ─── MAIN ────────────────────────────────────────────────────────────────── */
+export default function UserProfile() {
+  const [fu, setFu] = useState<any>(null);
+  const [ud, setUd] = useState<UserData>({
+    name:"",email:"",phone:"",education:"Undergraduate",
+    location:"",bio:"",photoURL:null,role:"Student",createdAt:"",interests:[],hobbies:[]
+  });
+  const [assess, setAssess] = useState<AssessmentResult|null>(null);
+  const [acts, setActs] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [notifs, setNotifs] = useState(true);
+  const [dark, setDark] = useState(false);
+  const [toast, setToast] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(()=>{
+    const unsub = auth.onAuthStateChanged(async u=>{
+      if(!u){setLoading(false);return;}
+      setFu(u);
+      const ref = doc(db,"users",u.uid);
+      const snap = await getDoc(ref);
+      if(snap.exists()){
+        const d = snap.data() as UserData;
+        setUd({...d,email:u.email||d.email,photoURL:d.photoURL||u.photoURL||null});
+      } else {
+        const init:UserData = {
+          name:u.displayName||"User",email:u.email||"",phone:"",education:"Undergraduate",
+          location:"",bio:"",photoURL:u.photoURL||null,role:"Student",
+          createdAt:new Date().toISOString(),interests:[],hobbies:[]
+        };
+        await setDoc(ref,init); setUd(init);
+      }
+      const as = await getDoc(doc(db,"assessments",u.uid));
+      if(as.exists()) setAssess(as.data() as AssessmentResult);
+      const ac = await getDoc(doc(db,"activities",u.uid));
+      if(ac.exists()) setActs((ac.data().items||[]).slice(0,6));
+      setLoading(false); setTimeout(()=>setReady(true),80);
+    });
+    return ()=>unsub();
+  },[]);
+
+  const logAct = async(type:string,title:string,icon:string)=>{
+    if(!fu) return;
+    const ref = doc(db,"activities",fu.uid);
+    const s = await getDoc(ref);
+    const ex:ActivityItem[] = s.exists()?(s.data().items||[]):[];
+    const up = [{id:Date.now().toString(),type,title,date:new Date().toISOString(),icon},...ex].slice(0,20);
+    await setDoc(ref,{items:up}); setActs(up.slice(0,6));
+  };
+
+  const saveProfile = async(upd:Partial<UserData>)=>{
+    if(!fu) return;
+    await updateDoc(doc(db,"users",fu.uid),upd as any);
+    setUd(p=>({...p,...upd})); logAct("profile","Updated profile","👤");
+  };
+  const saveInterests = async(interests:string[])=>{
+    if(!fu) return;
+    await updateDoc(doc(db,"users",fu.uid),{interests});
+    setUd(p=>({...p,interests})); logAct("interest","Updated career interests","💡");
+  };
+  const saveHobbies = async(hobbies:string[])=>{
+    if(!fu) return;
+    await updateDoc(doc(db,"users",fu.uid),{hobbies});
+    setUd(p=>({...p,hobbies})); logAct("hobby","Updated hobbies","🎨");
+  };
+
+  const downloadReport = ()=>{
+    if(!assess){alert("Take the aptitude test first.");return;}
+    const lines=[
+      "══════════════════════════════════════════════",
+      "      CAREER ASSESSMENT REPORT",
+      "══════════════════════════════════════════════",
+      `Name: ${ud.name}`,`Email: ${ud.email}`,
+      `Date: ${new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})}`,
+      "","── Thinking Style ───────────────────────────",
+      `Primary: ${assess.thinking_style?.primary?.label??"N/A"}`,
+      assess.thinking_style?.secondary?`Secondary: ${assess.thinking_style.secondary.label}`:"",
+      "","── Top Careers ──────────────────────────────",
+      ...(assess.top_careers??[]).map((c,i)=>`${i+1}. ${typeof c==="object"?c.name:c}`),
+      "","── Good Fits ────────────────────────────────",
+      ...(assess.moderate_careers??[]).map((c,i)=>`${i+1}. ${typeof c==="object"?c.name:c}`),
+      "","── Career Interests ─────────────────────────",
+      ud.interests.join(", ")||"Not specified",
+      "","══════════════════════════════════════════════",
+      "   Where Do I Go? Career Platform",
+      "══════════════════════════════════════════════",
+    ];
+    const url=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/plain"}));
+    const a=document.createElement("a"); a.href=url;
+    a.download=`${ud.name.replace(/\s+/g,"_")}_Career_Report.txt`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const shareProfile = async()=>{
+    const text=`${ud.name} — Career Profile\nThinking Style: ${assess?.thinking_style?.primary?.label??"Unknown"}\nTop Career: ${assess?.top_careers?.[0]?.name??"N/A"}\nvia Where Do I Go?`;
+    if(navigator.share){try{await navigator.share({title:`${ud.name}'s Profile`,text});}catch{}}
+    else{await navigator.clipboard.writeText(text);setToast(true);setTimeout(()=>setToast(false),3000);}
+  };
+
+  const HIDE = ["suppression_signal","pressure_conformity","childhood_divergence","fear_avoidance"];
+  const traits = Object.entries((assess as any)?.normalizedTraits??{})
+    .filter(([k])=>!HIDE.includes(k))
+    .map(([k,v]:[string,any])=>({key:k,name:label(k),score:Math.round(v*100)}))
+    .sort((a:any,b:any)=>b.score-a.score).slice(0,10) as {key:string;name:string;score:number}[];
+
+  const joined = ud.createdAt
+    ? new Date(ud.createdAt).toLocaleDateString("en-IN",{month:"long",year:"numeric"}) : "";
+
+  if(loading) return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f0f7ff"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{width:36,height:36,border:"3px solid #bfdbfe",borderTopColor:"#2563eb",
+          borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto 1rem"}}/>
+        <p style={{fontSize:"0.9rem",fontWeight:600,color:"#1e40af"}}>Loading profile…</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap');
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .card{opacity:0;animation:up 0.5s cubic-bezier(0.16,1,0.3,1) forwards}
+        *{box-sizing:border-box}
+        ::-webkit-scrollbar{height:4px;width:4px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:#bfdbfe;border-radius:99px}
+      `}</style>
+
+      <div style={{
+        minHeight:"100vh",
+        background:"linear-gradient(160deg,#f0f7ff 0%,#fafbff 40%,#f5f3ff 100%)",
+        fontFamily:"'Sora',sans-serif",color:"#0f172a",
+        opacity:ready?1:0,transition:"opacity 0.5s ease",overflowX:"hidden"
+      }}>
+
+        {/* ── Subtle mesh background ── */}
+        <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,overflow:"hidden"}}>
+          <div style={{position:"absolute",top:"-20%",right:"-10%",width:600,height:600,borderRadius:"50%",
+            background:"radial-gradient(circle,rgba(37,99,235,0.06) 0%,transparent 70%)"}}/>
+          <div style={{position:"absolute",bottom:"-10%",left:"-5%",width:500,height:500,borderRadius:"50%",
+            background:"radial-gradient(circle,rgba(124,58,237,0.06) 0%,transparent 70%)"}}/>
+        </div>
+
+        <div style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto",padding:"2.5rem 1.5rem 6rem"}}>
+
+          {/* ══ HERO PROFILE CARD ══════════════════════════════════════════════ */}
+          <div className="card" style={{animationDelay:"0s",
+            background:"#fff",borderRadius:24,marginBottom:"1.5rem",overflow:"hidden",
+            boxShadow:"0 1px 2px rgba(0,0,0,0.04),0 8px 32px rgba(37,99,235,0.08)",
+            border:"1px solid rgba(37,99,235,0.08)"}}>
+
+            {/* colour stripe */}
+            <div style={{height:5,background:"linear-gradient(90deg,#2563eb 0%,#7c3aed 50%,#2563eb 100%)",backgroundSize:"200% 100%"}}/>
+
+            <div style={{padding:"2rem 2.25rem"}}>
+              <div style={{display:"flex",flexWrap:"wrap",alignItems:"flex-start",gap:"1.75rem"}}>
+
+                {/* Avatar */}
+                <div style={{position:"relative",flexShrink:0}}>
+                  <div style={{width:108,height:108,borderRadius:"50%",padding:3,
+                    background:"linear-gradient(135deg,#2563eb,#7c3aed)"}}>
+                    <div style={{width:"100%",height:"100%",borderRadius:"50%",overflow:"hidden",
+                      background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      {ud.photoURL
+                        ? <img src={ud.photoURL} alt={ud.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                        : <span style={{fontSize:"2rem",fontWeight:800,
+                            background:"linear-gradient(135deg,#2563eb,#7c3aed)",
+                            WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
+                            {initials(ud.name)}
+                          </span>}
+                    </div>
+                  </div>
+                  <div style={{position:"absolute",bottom:5,right:5,width:14,height:14,
+                    borderRadius:"50%",background:"#3b82f6",border:"2.5px solid #fff"}}/>
+                </div>
+
+                {/* Name + meta */}
+                <div style={{flex:1,minWidth:200}}>
+                  <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",gap:"0.65rem",marginBottom:"0.5rem"}}>
+                    <h1 style={{fontFamily:"'DM Serif Display',serif",fontSize:"clamp(1.5rem,3vw,2rem)",
+                      fontWeight:400,color:"#0f172a",margin:0,letterSpacing:"-0.01em"}}>{ud.name||"Your Name"}</h1>
+                    <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"0.22rem 0.75rem",
+                      borderRadius:99,background:"linear-gradient(135deg,#2563eb,#7c3aed)",
+                      color:"#fff",fontSize:"0.67rem",fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>
+                      <Sparkles size={9}/>{ud.role}
+                    </span>
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"0.6rem 1.1rem",color:"#64748b",fontSize:"0.78rem",marginBottom:"0.75rem"}}>
+                    {[
+                      {icon:<Mail size={11}/>,val:ud.email},
+                      ud.location&&{icon:<MapPin size={11}/>,val:ud.location},
+                      ud.phone&&{icon:<Phone size={11}/>,val:ud.phone},
+                      joined&&{icon:<Calendar size={11}/>,val:`Joined ${joined}`},
+                      ud.education&&{icon:<GraduationCap size={11}/>,val:ud.education},
+                    ].filter(Boolean).map((item:any,i)=>(
+                      <span key={i} style={{display:"flex",alignItems:"center",gap:4}}>{item.icon}{item.val}</span>
+                    ))}
+                  </div>
+                  {ud.bio&&<p style={{fontSize:"0.82rem",lineHeight:1.7,color:"#475569",maxWidth:"52ch",margin:0}}>{ud.bio}</p>}
+                </div>
+
+                {/* Edit button */}
+                <motion.button whileHover={{scale:1.04}} whileTap={{scale:0.95}} onClick={()=>setEditOpen(true)}
+                  style={{display:"flex",alignItems:"center",gap:6,padding:"0.6rem 1.2rem",borderRadius:11,
+                    border:"1.5px solid #2563eb",background:"transparent",color:"#2563eb",fontWeight:700,
+                    fontSize:"0.78rem",cursor:"pointer",fontFamily:"inherit",flexShrink:0,letterSpacing:"0.01em"}}>
+                  <Edit3 size={13}/> Edit Profile
+                </motion.button>
+              </div>
+
+              {/* Thinking style pill */}
+              {assess?.thinking_style?.primary&&(
+                <div style={{marginTop:"1.25rem",paddingTop:"1.25rem",borderTop:"1px solid #f1f5f9"}}>
+                  <div style={{display:"inline-flex",alignItems:"center",gap:"0.9rem",
+                    padding:"0.7rem 1.2rem",borderRadius:14,
+                    background:"linear-gradient(135deg,#eff6ff,#f5f3ff)",
+                    border:"1px solid #bfdbfe"}}>
+                    <span style={{fontSize:"1.5rem"}}>🧩</span>
+                    <div>
+                      <p style={{fontSize:"0.58rem",fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",
+                        color:"#2563eb",margin:"0 0 0.1rem"}}>Thinking Style</p>
+                      <p style={{fontFamily:"'DM Serif Display',serif",fontSize:"0.95rem",color:"#0f172a",margin:0}}>
+                        {assess.thinking_style.primary.label}
+                      </p>
+                      {assess.thinking_style.secondary&&(
+                        <p style={{fontSize:"0.68rem",color:"#7c3aed",margin:"0.08rem 0 0"}}>
+                          Also: {assess.thinking_style.secondary.label}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ══ MAIN GRID ══════════════════════════════════════════════════════ */}
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 280px",gap:"1.5rem",alignItems:"start"}}>
+
+            {/* ── LEFT ── */}
+            <div style={{display:"flex",flexDirection:"column",gap:"1.5rem",minWidth:0}}>
+
+              {/* SKILL STRENGTHS */}
+              <div className="card" style={{animationDelay:"0.08s",
+                background:"#fff",borderRadius:20,padding:"1.75rem",
+                boxShadow:"0 1px 2px rgba(0,0,0,0.04),0 4px 16px rgba(37,99,235,0.06)",
+                border:"1px solid rgba(37,99,235,0.07)"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.4rem"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                    <div style={{width:30,height:30,borderRadius:8,background:"#eff6ff",
+                      display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <Brain size={15} color="#2563eb"/>
+                    </div>
+                    <h2 style={{fontSize:"0.93rem",fontWeight:700,color:"#0f172a",margin:0,letterSpacing:"-0.01em"}}>Skill Strengths</h2>
+                  </div>
+                  {!assess&&<span style={{fontSize:"0.68rem",color:"#94a3b8",fontStyle:"italic"}}>Take the aptitude test</span>}
+                </div>
+                {traits.length>0?(
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 2.5rem"}}>
+                    {traits.map((t,i)=><SkillBar key={t.key} name={t.name} score={t.score} i={i}/>)}
+                  </div>
+                ):(
+                  <div style={{textAlign:"center",padding:"2rem 1rem",color:"#cbd5e1"}}>
+                    <Brain size={36} style={{marginBottom:"0.75rem",opacity:0.4}}/>
+                    <p style={{margin:0,fontSize:"0.82rem",color:"#94a3b8"}}>Complete the aptitude test to unlock your skill profile.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* CAREER INTERESTS */}
+              <div className="card" style={{animationDelay:"0.14s",
+                background:"#fff",borderRadius:20,padding:"1.75rem",
+                boxShadow:"0 1px 2px rgba(0,0,0,0.04),0 4px 16px rgba(37,99,235,0.06)",
+                border:"1px solid rgba(37,99,235,0.07)"}}>
+                <TagInput label="Career Interests" icon={<Target size={16}/>}
+                  tags={ud.interests} onUpdate={saveInterests}
+                  placeholder="e.g. UI/UX Design, Data Science…" color="#2563eb"/>
+              </div>
+
+              {/* HOBBIES */}
+              <div className="card" style={{animationDelay:"0.18s",
+                background:"#fff",borderRadius:20,padding:"1.75rem",
+                boxShadow:"0 1px 2px rgba(0,0,0,0.04),0 4px 16px rgba(124,58,237,0.06)",
+                border:"1px solid rgba(124,58,237,0.07)"}}>
+                <TagInput label="Hobbies & Interests" icon={<Music size={16}/>}
+                  tags={ud.hobbies} onUpdate={saveHobbies}
+                  placeholder="e.g. Photography, Reading…" color="#7c3aed"/>
+              </div>
+
+              {/* RECOMMENDED CAREERS */}
+              <div className="card" style={{animationDelay:"0.22s",
+                background:"#fff",borderRadius:20,padding:"1.75rem",
+                boxShadow:"0 1px 2px rgba(0,0,0,0.04),0 4px 16px rgba(37,99,235,0.06)",
+                border:"1px solid rgba(37,99,235,0.07)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"0.5rem",marginBottom:"1.4rem"}}>
+                  <div style={{width:30,height:30,borderRadius:8,background:"#faf5ff",
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <Award size={15} color="#7c3aed"/>
+                  </div>
+                  <h2 style={{fontSize:"0.93rem",fontWeight:700,color:"#0f172a",margin:0,letterSpacing:"-0.01em"}}>Recommended Career Paths</h2>
+                </div>
+
+                {(assess?.top_careers?.length||assess?.moderate_careers?.length)?(
+                  <div style={{display:"flex",gap:"0.75rem",overflowX:"auto",paddingBottom:"0.5rem"}}>
+                    {[...(assess?.top_careers??[]),...(assess?.moderate_careers??[])].slice(0,8).map((c:any,i)=>{
+                      const top = i<(assess?.top_careers?.length??0);
+                      return (
+                        <motion.div key={i} whileHover={{y:-4,boxShadow:top
+                          ?"0 12px 28px rgba(37,99,235,0.22)"
+                          :"0 12px 28px rgba(124,58,237,0.22)"}}
+                          style={{minWidth:180,borderRadius:16,padding:"1.1rem 1.25rem",color:"#fff",flexShrink:0,
+                            background:top
+                              ?"linear-gradient(145deg,#1d4ed8,#2563eb)"
+                              :"linear-gradient(145deg,#6d28d9,#7c3aed)",
+                            boxShadow:top
+                              ?"0 4px 14px rgba(37,99,235,0.18)"
+                              :"0 4px 14px rgba(124,58,237,0.18)",
+                            transition:"box-shadow 0.2s,transform 0.2s",cursor:"default"}}>
+                          <p style={{fontSize:"0.55rem",fontWeight:700,letterSpacing:"0.12em",
+                            textTransform:"uppercase",opacity:0.75,margin:"0 0 0.4rem"}}>
+                            {top?"★ Top Match":"◆ Good Fit"}
+                          </p>
+                          <p style={{fontFamily:"'DM Serif Display',serif",fontSize:"0.95rem",
+                            lineHeight:1.3,margin:0}}>{typeof c==="object"?c.name:c}</p>
+                          {c?.emerging&&(
+                            <span style={{display:"inline-block",marginTop:"0.4rem",fontSize:"0.56rem",
+                              fontWeight:700,background:"rgba(255,255,255,0.2)",
+                              padding:"0.1rem 0.45rem",borderRadius:99,letterSpacing:"0.06em"}}>
+                              EMERGING
+                            </span>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                ):(
+                  <div style={{textAlign:"center",padding:"2rem 1rem",color:"#94a3b8"}}>
+                    <Award size={36} style={{marginBottom:"0.75rem",opacity:0.3}}/>
+                    <p style={{margin:0,fontSize:"0.82rem"}}>Complete the aptitude test to see your career matches.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── RIGHT ── */}
+            <div style={{display:"flex",flexDirection:"column",gap:"1.5rem"}}>
+
+              {/* RECENT ACTIVITY */}
+              <div className="card" style={{animationDelay:"0.1s",
+                background:"#fff",borderRadius:20,padding:"1.5rem",
+                boxShadow:"0 1px 2px rgba(0,0,0,0.04),0 4px 16px rgba(37,99,235,0.06)",
+                border:"1px solid rgba(37,99,235,0.07)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"0.45rem",marginBottom:"1.25rem"}}>
+                  <div style={{width:28,height:28,borderRadius:7,background:"#f8fafc",
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <Clock size={13} color="#64748b"/>
+                  </div>
+                  <h2 style={{fontSize:"0.88rem",fontWeight:700,color:"#0f172a",margin:0}}>Recent Activity</h2>
+                </div>
+                {acts.length>0?(
+                  <div style={{display:"flex",flexDirection:"column",gap:"0.7rem"}}>
+                    {acts.map((a,i)=>(
+                      <div key={a.id} style={{display:"flex",alignItems:"flex-start",gap:"0.6rem",position:"relative"}}>
+                        {i<acts.length-1&&(
+                          <div style={{position:"absolute",left:14,top:28,width:1,
+                            height:"calc(100% + 0.7rem)",
+                            background:"linear-gradient(to bottom,#bfdbfe,transparent)"}}/>
+                        )}
+                        <div style={{width:28,height:28,borderRadius:"50%",background:"#eff6ff",
+                          border:"1px solid #bfdbfe",display:"flex",alignItems:"center",
+                          justifyContent:"center",fontSize:"0.78rem",flexShrink:0,zIndex:1}}>
+                          {a.icon||"📌"}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <p style={{fontSize:"0.76rem",fontWeight:600,color:"#1e293b",margin:"0 0 0.08rem",lineHeight:1.4}}>{a.title}</p>
+                          <p style={{fontSize:"0.66rem",color:"#94a3b8",margin:0}}>{relTime(a.date)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ):(
+                  <p style={{fontSize:"0.76rem",color:"#94a3b8",textAlign:"center",fontStyle:"italic",margin:"0.5rem 0"}}>No activity yet.</p>
+                )}
+              </div>
+
+              {/* QUICK SETTINGS */}
+              <div className="card" style={{animationDelay:"0.16s",
+                background:"#fff",borderRadius:20,padding:"1.5rem",
+                boxShadow:"0 1px 2px rgba(0,0,0,0.04),0 4px 16px rgba(37,99,235,0.06)",
+                border:"1px solid rgba(37,99,235,0.07)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"0.45rem",marginBottom:"1.25rem"}}>
+                  <div style={{width:28,height:28,borderRadius:7,background:"#f8fafc",
+                    display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <Settings size={13} color="#64748b"/>
+                  </div>
+                  <h2 style={{fontSize:"0.88rem",fontWeight:700,color:"#0f172a",margin:0}}>Quick Settings</h2>
+                </div>
+
+                <div style={{display:"flex",flexDirection:"column",gap:"0.35rem"}}>
+                  {/* Toggles */}
+                  {[
+                    {lbl:"Notifications",icon:<Bell size={13} color="#64748b"/>,val:notifs,set:()=>setNotifs(p=>!p)},
+                    {lbl:"Dark Mode",icon:<Moon size={13} color="#64748b"/>,val:dark,set:()=>setDark(p=>!p)},
+                  ].map(({lbl,icon,val,set})=>(
+                    <div key={lbl} style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                      padding:"0.65rem 0.8rem",borderRadius:10,background:"#f8fafc",border:"1px solid #f1f5f9"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:"0.45rem"}}>
+                        {icon}<span style={{fontSize:"0.78rem",fontWeight:500,color:"#334155"}}>{lbl}</span>
+                      </div>
+                      <Toggle on={val} onToggle={set}/>
+                    </div>
+                  ))}
+
+                  {/* Action buttons */}
+                  {[
+                    {lbl:"Download Report",icon:<Download size={13} color="#2563eb"/>,onClick:downloadReport},
+                    {lbl:"Share Profile",icon:<Share2 size={13} color="#7c3aed"/>,onClick:shareProfile},
+                  ].map(({lbl,icon,onClick})=>(
+                    <motion.button key={lbl} whileTap={{scale:0.97}} onClick={onClick}
+                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                        padding:"0.65rem 0.8rem",borderRadius:10,background:"#f8fafc",
+                        border:"1px solid #f1f5f9",cursor:"pointer",fontFamily:"inherit",width:"100%"}}>
+                      <span style={{fontSize:"0.78rem",fontWeight:500,color:"#334155"}}>{lbl}</span>
+                      {icon}
+                    </motion.button>
+                  ))}
+
+                  <div style={{height:1,background:"#f1f5f9",margin:"0.1rem 0"}}/>
+
+                  {/* Logout */}
+                  <motion.button whileTap={{scale:0.97}} onClick={()=>setLogoutOpen(true)}
+                    style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                      padding:"0.65rem 0.8rem",borderRadius:10,background:"#fff5f5",
+                      border:"1px solid #fee2e2",cursor:"pointer",fontFamily:"inherit",width:"100%"}}>
+                    <span style={{fontSize:"0.78rem",fontWeight:700,color:"#dc2626"}}>Sign Out</span>
+                    <LogOut size={13} color="#dc2626"/>
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── MODALS ── */}
+        <EditModal open={editOpen} onClose={()=>setEditOpen(false)} userData={ud} onSave={saveProfile}/>
+
+        <AnimatePresence>
+          {logoutOpen&&(
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+              style={{position:"fixed",inset:0,zIndex:50,display:"flex",alignItems:"center",
+                justifyContent:"center",padding:"1rem",background:"rgba(2,6,23,0.55)",backdropFilter:"blur(8px)"}}
+              onClick={()=>setLogoutOpen(false)}>
+              <motion.div initial={{scale:0.9,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:0.9,opacity:0}}
+                onClick={e=>e.stopPropagation()}
+                style={{background:"#fff",borderRadius:22,padding:"2rem",maxWidth:360,width:"100%",
+                  boxShadow:"0 24px 60px rgba(0,0,0,0.14)",textAlign:"center"}}>
+                <div style={{width:50,height:50,borderRadius:"50%",background:"#fff5f5",
+                  display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 0.9rem"}}>
+                  <LogOut size={20} color="#dc2626"/>
+                </div>
+                <h3 style={{fontFamily:"'DM Serif Display',serif",fontSize:"1.25rem",color:"#0f172a",marginBottom:"0.4rem"}}>Sign out?</h3>
+                <p style={{fontSize:"0.8rem",color:"#64748b",lineHeight:1.65,marginBottom:"1.5rem"}}>
+                  You'll need to sign back in to access your profile and results.
+                </p>
+                <div style={{display:"flex",gap:"0.6rem"}}>
+                  <button onClick={()=>setLogoutOpen(false)}
+                    style={{flex:1,padding:"0.7rem",borderRadius:11,border:"1px solid #e2e8f0",
+                      background:"#f8fafc",color:"#64748b",fontWeight:600,fontSize:"0.82rem",
+                      cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+                  <motion.button whileTap={{scale:0.97}}
+                    onClick={()=>{auth.signOut();setLogoutOpen(false);}}
+                    style={{flex:1,padding:"0.7rem",borderRadius:11,border:"none",background:"#dc2626",
+                      color:"#fff",fontWeight:700,fontSize:"0.82rem",cursor:"pointer",fontFamily:"inherit"}}>
+                    Sign Out
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {toast&&(
+            <motion.div initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} exit={{opacity:0,y:24}}
+              style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",zIndex:100,
+                background:"linear-gradient(135deg,#1d4ed8,#7c3aed)",color:"#fff",
+                padding:"0.7rem 1.4rem",borderRadius:99,
+                boxShadow:"0 8px 24px rgba(29,78,216,0.28)",fontSize:"0.8rem",fontWeight:600,
+                display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>
+              <CheckCircle2 size={13}/> Copied to clipboard!
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+}

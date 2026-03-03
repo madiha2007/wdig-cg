@@ -4,10 +4,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { evaluateResponses } from "@/utils/evaluateResponses";
 import { useAssessment } from "@/app/context/AssessmentContext";
+import { auth } from "../../../firebase";
+
 
 const AptitudeTest = () => {
   const router = useRouter();
-  const { finalizeAssessment } = useAssessment();
+  const { finalizeAssessment, userProfile } = useAssessment();
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
@@ -156,6 +158,9 @@ if (questionStartTime) {
 
 const handleSubmit = async () => {
 
+   console.log("🔍 Current user:", auth.currentUser?.uid);  // ADD THIS
+  console.log("🔍 Answers count:", Object.keys(answers).length);  // ADD THIS
+
     if (hasSubmitted.current) return;
   hasSubmitted.current = true;
   
@@ -181,7 +186,7 @@ const handleSubmit = async () => {
     const res = await fetch("http://localhost:5000/api/predict", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers,  firebase_uid: auth.currentUser?.uid || null, }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -195,6 +200,42 @@ const handleSubmit = async () => {
 
   // 4. Finalize — store everything in context
   finalizeAssessment(finalResult, answers, mlResult);
+    // 5. Save to Firestore
+  try {
+    const { auth, db } = await import("../../../firebase");
+    const { doc, setDoc, getDoc } = await import("firebase/firestore");
+    const user = auth.currentUser;
+
+    if (user) {
+      // Save assessment results
+      await setDoc(doc(db, "assessments", user.uid), {
+        ...mlResult,
+        normalizedTraits: userProfile?.normalizedTraits ?? finalResult.traits,
+        savedAt: new Date().toISOString(),
+      });
+
+      // Save activity
+      const actRef = doc(db, "activities", user.uid);
+      const actSnap = await getDoc(actRef);
+      const existing = actSnap.exists() ? (actSnap.data().items || []) : [];
+      await setDoc(actRef, {
+        items: [
+          {
+            id: Date.now().toString(),
+            type: "assessment",
+            title: "Completed Aptitude Assessment",
+            date: new Date().toISOString(),
+            icon: "🧠"
+          },
+          ...existing
+        ].slice(0, 20)
+      });
+    }
+} catch (err) {
+  console.error("❌ ML API error:", err.message);  // change warn to error
+  alert("API Error: " + err.message);               // add this line temporarily
+}
+
   router.push("/results");
 };
 

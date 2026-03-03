@@ -6,6 +6,8 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../../../firebase"; // adjust if firebase.js is elsewhere
 import Navbar from "../../components/Navbar";
 import Link from "next/link";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../../../firebase";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -71,6 +73,24 @@ localStorage.setItem(
     uid: userCred.user.uid,
   })
 );
+
+const ref = doc(db, "users", user.uid);
+const snap = await getDoc(ref);
+if (!snap.exists()) {
+  await setDoc(ref, {
+    name: user.displayName || "",
+    email: user.email || "",
+    phone: "",
+    education: "Undergraduate",
+    location: "",
+    bio: "",
+    photoURL: user.photoURL || null,
+    role: "Student",
+    createdAt: new Date().toISOString(),
+    interests: [],
+    hobbies: []
+  });
+}
 
 // Redirect straight to dashboard
 router.push("/dashboard");

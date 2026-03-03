@@ -323,7 +323,7 @@ function fmt(n) {
 /* ─── Floating orbs background ─────────────────────────────── */
 function Background() {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
+    <div style={{ position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
       <div style={{
         position: "absolute", width: 600, height: 600, borderRadius: "50%",
         background: "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)",
@@ -588,20 +588,20 @@ export default function ExploreCareersPage() {
   const activeDomainData = DOMAINS.find(d => d.value === activeDomain);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8f7f4", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
+    <div style={{ background: "#f8f7f4", fontFamily: "'DM Sans', sans-serif", position: "relative", isolation: "isolate" }}>
       <Background />
 
       {/* Google Fonts */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&family=DM+Mono&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box;  }
         :root { scroll-behavior: smooth; }
       `}</style>
 
       {/* ── Hero ───────────────────────────────────────────── */}
       <div style={{
         position: "relative", zIndex: 1,
-        background: "linear-gradient(135deg, #0f0c29 0%, #1a1a3e 40%, #24243e 100%)",
+        background: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 60%, #e0f2fe 100%)",
         overflow: "hidden", paddingBottom: 60
       }}>
         {/* Grid pattern */}
@@ -612,16 +612,13 @@ export default function ExploreCareersPage() {
         }} />
 
         {/* Glowing spots */}
-        <div style={{ position: "absolute", top: -80, left: "20%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", bottom: -40, right: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(236,72,153,0.2) 0%, transparent 70%)" }} />
-
         <div style={{ position: "relative", maxWidth: 900, margin: "0 auto", padding: "80px 24px 0" }}>
           {/* Badge */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.4)",
-              color: "#a5b4fc", borderRadius: 100, padding: "8px 20px",
+              color: "#4338ca", borderRadius: 100, padding: "8px 20px",
               fontSize: 13, fontWeight: 600, backdropFilter: "blur(8px)"
             }}>
               <Sparkles size={14} />
@@ -633,7 +630,7 @@ export default function ExploreCareersPage() {
           <h1 style={{
             textAlign: "center", fontSize: "clamp(36px, 6vw, 64px)",
             fontFamily: "'Playfair Display', serif",
-            fontWeight: 900, color: "#fff", lineHeight: 1.1, marginBottom: 16
+            fontWeight: 900, color: "#1e3a5f", lineHeight: 1.1, marginBottom: 16
           }}>
             Discover Your{" "}
             <span style={{
@@ -642,7 +639,7 @@ export default function ExploreCareersPage() {
             }}>Perfect Career</span>
           </h1>
           <p style={{
-            textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 17,
+            textAlign: "center", color: "#4b6a8a", fontSize: 17,
             lineHeight: 1.7, maxWidth: 560, margin: "0 auto 36px"
           }}>
             Explore thousands of real career paths with live salary data,
@@ -706,13 +703,9 @@ export default function ExploreCareersPage() {
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "8px 18px", borderRadius: 100, fontSize: 13, fontWeight: 600,
                 cursor: "pointer", transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-                border: activeDomain === d.value
-                  ? `1.5px solid ${d.color}`
-                  : "1.5px solid rgba(255,255,255,0.15)",
-                background: activeDomain === d.value
-                  ? `${d.color}25`
-                  : "rgba(255,255,255,0.07)",
-                color: activeDomain === d.value ? "#fff" : "rgba(255,255,255,0.6)",
+                border: activeDomain === d.value ? `1.5px solid ${d.color}` : "1.5px solid rgba(0,0,0,0.12)",
+                background: activeDomain === d.value ? `${d.color}20` : "rgba(255,255,255,0.8)",
+                color: activeDomain === d.value ? d.color : "#374151",
                 transform: activeDomain === d.value ? "scale(1.05)" : "scale(1)",
                 boxShadow: activeDomain === d.value ? `0 4px 20px ${d.color}40` : "none",
                 backdropFilter: "blur(8px)"

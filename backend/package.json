@@ -12,9 +12,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "indian-colleges": "^1.1.1"
+    "groq-sdk": "^0.37.0",
+    "indian-colleges": "^1.1.1",
+    "pg": "^8.19.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6"
