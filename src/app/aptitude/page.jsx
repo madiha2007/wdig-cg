@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { evaluateResponses } from "@/utils/evaluateResponses";
 import { useAssessment } from "@/app/context/AssessmentContext";
 import { auth } from "../../../firebase";
+import ProfileGate from "../../components/ProfileGate";
 
 
 const AptitudeTest = () => {
@@ -395,4 +396,10 @@ const handleSubmit = async () => {
   );
 };
 
-export default AptitudeTest;
+export default function AptitudePage() {
+  return (
+    <ProfileGate>
+      <AptitudeTest />
+    </ProfileGate>
+  );
+}

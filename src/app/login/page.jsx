@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
-import { signInWithGoogle } from "../../../firebase"; // adjust path to your firebase.js
+import { signInWithGoogle } from "../../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../firebase";
 
@@ -23,44 +23,47 @@ export default function LoginPage() {
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  let newErrors = {};
-  if (!form.email) newErrors.email = "Email is required";
-  if (!form.password) newErrors.password = "Password is required";
-  setErrors(newErrors);
-  if (Object.keys(newErrors).length > 0) return;
+    let newErrors = {};
+    if (!form.email) newErrors.email = "Email is required";
+    if (!form.password) newErrors.password = "Password is required";
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
-  setLoading(true);
-  try {
-    const result = await signInWithEmailAndPassword(auth, form.email.trim(), form.password);
-    const user = result.user;
+    setLoading(true);
+    try {
+      const result = await signInWithEmailAndPassword(auth, form.email.trim(), form.password);
+      const user = result.user;
 
-    // Save for navbar
-    localStorage.setItem("user", JSON.stringify({
-      email: user.email,
-      name: user.displayName,
-      photo: user.photoURL,
-    }));
+      // ✅ Use sessionStorage (clears on tab/browser close)
+      sessionStorage.setItem("user", JSON.stringify({
+        email: user.email,
+        name: user.displayName,
+        photo: user.photoURL,
+      }));
 
-    // Save UID for report page
-    sessionStorage.setItem("wdig_uid", user.uid);
+      // Save UID for report page
+      sessionStorage.setItem("wdig_uid", user.uid);
 
-    router.push("/dashboard");
+      // ✅ Notify Navbar that user logged in
+      window.dispatchEvent(new Event("sessionUpdated"));
 
-  } catch (err) {
-    if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
-      setErrors({ email: "No account found with this email" });
-    } else if (err.code === "auth/wrong-password") {
-      setErrors({ password: "Incorrect password" });
-    } else {
-      setErrors({ general: err.message });
+      router.push("/dashboard");
+
+    } catch (err) {
+      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+        setErrors({ email: "No account found with this email" });
+      } else if (err.code === "auth/wrong-password") {
+        setErrors({ password: "Incorrect password" });
+      } else {
+        setErrors({ general: err.message });
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen text-black">
@@ -98,56 +101,59 @@ export default function LoginPage() {
               Enter your credentials to access your dashboard
             </p>
 
-            {/* Google Login (Updated Professional Style) */}
- <button
-  onClick={async () => {
-    if (loading) return; // prevent double click
-    setLoading(true);
-    try {
-      const result = await signInWithGoogle();
-      const user = result.user;
+            {/* Google Login */}
+            <button
+              onClick={async () => {
+                if (loading) return;
+                setLoading(true);
+                try {
+                  const result = await signInWithGoogle();
+                  const user = result.user;
 
-      localStorage.setItem("user", JSON.stringify({
-        email: user.email,
-        name: user.displayName,
-        photo: user.photoURL,
-      }));
+                  // ✅ Use sessionStorage (clears on tab/browser close)
+                  sessionStorage.setItem("user", JSON.stringify({
+                    email: user.email,
+                    name: user.displayName,
+                    photo: user.photoURL,
+                  }));
 
-      sessionStorage.setItem("wdig_uid", user.uid); // ← for report page
+                  sessionStorage.setItem("wdig_uid", user.uid);
 
-      // Save to Firestore
-      const ref = doc(db, "users", user.uid);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        await setDoc(ref, {
-          name: user.displayName || "",
-          email: user.email || "",
-          photoURL: user.photoURL || null,
-          role: "Student",
-          createdAt: new Date().toISOString(),
-        });
-      }
+                  // Save to Firestore
+                  const ref = doc(db, "users", user.uid);
+                  const snap = await getDoc(ref);
+                  if (!snap.exists()) {
+                    await setDoc(ref, {
+                      name: user.displayName || "",
+                      email: user.email || "",
+                      photoURL: user.photoURL || null,
+                      role: "Student",
+                      createdAt: new Date().toISOString(),
+                    });
+                  }
 
-      router.push("/dashboard");
+                  // ✅ Notify Navbar that user logged in
+                  window.dispatchEvent(new Event("sessionUpdated"));
 
-    } catch (error) {
-      if (error.code !== "auth/cancelled-popup-request" && 
-          error.code !== "auth/popup-closed-by-user") {
-        alert("Google login failed: " + error.message);
-      }
-      // silently ignore popup cancelled errors
-    } finally {
-      setLoading(false);
-    }
-  }}
-  disabled={loading}
-  className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-md bg-white hover:bg-gray-100 transition text-gray-700 shadow-sm mb-5 disabled:opacity-60"
->
-  <img src="/google.svg" alt="Google" style={{ width: "30px", height: "30px" }} />
-  <span className="font-medium">
-    {loading ? "Signing in..." : "Sign in with Google"}
-  </span>
-</button>
+                  router.push("/dashboard");
+
+                } catch (error) {
+                  if (error.code !== "auth/cancelled-popup-request" &&
+                    error.code !== "auth/popup-closed-by-user") {
+                    alert("Google login failed: " + error.message);
+                  }
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-md bg-white hover:bg-gray-100 transition text-gray-700 shadow-sm mb-5 disabled:opacity-60"
+            >
+              <img src="/google.svg" alt="Google" style={{ width: "30px", height: "30px" }} />
+              <span className="font-medium">
+                {loading ? "Signing in..." : "Sign in with Google"}
+              </span>
+            </button>
 
             {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -205,8 +211,10 @@ export default function LoginPage() {
               </button>
             </form>
 
+            {errors.general && <p className="text-xs text-red-500 mt-2">{errors.general}</p>}
+
             <p className="text-sm text-black/70 mt-4 text-center">
-              Don’t have an account?{" "}
+              Don't have an account?{" "}
               <Link href="/signup" className="underline font-medium">
                 Create one
               </Link>

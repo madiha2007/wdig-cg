@@ -1,10 +1,9 @@
-"use client"; // this is required for client components
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "../../../firebase"; // adjust if firebase.js is elsewhere
-import Navbar from "../../components/Navbar";
+import { auth } from "../../../firebase";
 import Link from "next/link";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
@@ -55,45 +54,43 @@ export default function RegisterPage() {
         form.password
       );
 
+      // ✅ Update display name
       await updateProfile(userCred.user, {
         displayName: form.name.trim(),
       });
 
-      router.push("/login");
-      await updateProfile(userCred.user, {
-  displayName: form.name.trim(),
-});
+      // ✅ Use sessionStorage (clears on tab/browser close)
+      sessionStorage.setItem("user", JSON.stringify({
+        name: form.name.trim(),
+        email: userCred.user.email,
+        uid: userCred.user.uid,
+      }));
 
-// Save user info locally for quick access
-localStorage.setItem(
-  "user",
-  JSON.stringify({
-    name: form.name.trim(),
-    email: userCred.user.email,
-    uid: userCred.user.uid,
-  })
-);
+      sessionStorage.setItem("wdig_uid", userCred.user.uid);
 
-const ref = doc(db, "users", user.uid);
-const snap = await getDoc(ref);
-if (!snap.exists()) {
-  await setDoc(ref, {
-    name: user.displayName || "",
-    email: user.email || "",
-    phone: "",
-    education: "Undergraduate",
-    location: "",
-    bio: "",
-    photoURL: user.photoURL || null,
-    role: "Student",
-    createdAt: new Date().toISOString(),
-    interests: [],
-    hobbies: []
-  });
-}
+      // ✅ Save to Firestore using userCred.user (not undefined `user`)
+      const ref = doc(db, "users", userCred.user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          name: form.name.trim(),
+          email: userCred.user.email || "",
+          phone: form.phone.trim(),
+          education: "Undergraduate",
+          location: "",
+          bio: "",
+          photoURL: userCred.user.photoURL || null,
+          role: "Student",
+          createdAt: new Date().toISOString(),
+          interests: [],
+          hobbies: [],
+        });
+      }
 
-// Redirect straight to dashboard
-router.push("/dashboard");
+      // ✅ Notify Navbar that user logged in
+      window.dispatchEvent(new Event("sessionUpdated"));
+
+      router.push("/dashboard");
 
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {

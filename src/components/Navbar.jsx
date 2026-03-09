@@ -29,12 +29,12 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+useEffect(() => {
+    const storedUser = JSON.parse(sessionStorage.getItem("user")); // 👈 changed
     setUser(storedUser);
 
     const handleStorageChange = () => {
-      const updatedUser = JSON.parse(localStorage.getItem("user"));
+      const updatedUser = JSON.parse(sessionStorage.getItem("user")); // 👈 changed
       setUser(updatedUser);
     };
 
@@ -53,7 +53,7 @@ export default function Navbar() {
   }, [userMenuOpen]);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("user"); // 👈 changed
     setUser(null);
     setUserMenuOpen(false);
     setMenuOpen(false);
@@ -68,7 +68,7 @@ export default function Navbar() {
         {/* LOGO */}
         <div className="flex items-center gap-3">
           <Image src={icons.logo} alt="Logo" width={40} height={40} />
-          <Link href={user ? "/dashboard" : "/"} className="text-black font-semibold text-lg">
+          <Link href="/" className="text-black font-semibold text-lg">
             Where Do I Go?
           </Link>
         </div>
@@ -76,6 +76,7 @@ export default function Navbar() {
         {/* DESKTOP NAV */}
         <nav className="hidden md:flex items-center gap-6">
           <NavItem href={user ? "/dashboard" : "/"} icon={icons.home} label="Home" />
+
           <NavItem href="/explore" icon={icons.career} label="Explore Careers" />
           <NavItem href="/institute" icon={icons.institute} label="Find Institutes" />
           <NavItem href="/mentors" icon={icons.mentor} label="Mentorship" />
@@ -189,6 +190,7 @@ export default function Navbar() {
           <div className="space-y-1">
             <p className="text-xs font-semibold text-black/40 uppercase tracking-wider mb-2">Menu</p>
             <MobileNavItem href={user ? "/dashboard" : "/"} icon={icons.home} label="Home" close={setMenuOpen} />
+
             <MobileNavItem href="/explore" icon={icons.career} label="Explore Careers" close={setMenuOpen} />
             <MobileNavItem href="/institute" icon={icons.institute} label="Find Institutes" close={setMenuOpen} />
             <MobileNavItem href="/mentors" icon={icons.mentor} label="Mentorship" close={setMenuOpen} />

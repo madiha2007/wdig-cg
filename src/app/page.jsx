@@ -12,11 +12,6 @@ export default function HomePage() {
 
   useEffect(() => {
     // If logged in, redirect to dashboard
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user) {
-      router.replace("/dashboard");
-      return;
-    }
 
     const stored = localStorage.getItem("aptitudeResult");
     setHasResult(!!stored);
