@@ -16,7 +16,7 @@
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1",
+    "express": "^4.18.2",
     "groq-sdk": "^0.37.0",
     "indian-colleges": "^1.1.1",
     "pg": "^8.19.0",

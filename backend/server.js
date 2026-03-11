@@ -152,7 +152,21 @@ await new Promise(r => setTimeout(r, 8000));
 //   http://localhost:5000/api/pdf/generate
 //
 // That's it — no separate process, no port 8001 needed.
+// Catch unhandled promise rejections (Puppeteer timeouts etc.)
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection:", reason);
+  // Don't exit — keep server alive
+});
+
+// Catch uncaught exceptions
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err.message);
+  // Don't exit — keep server alive
+});
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
 });
+
+// Keep process alive
+process.stdin.resume();
