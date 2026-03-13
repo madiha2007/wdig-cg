@@ -144,7 +144,7 @@ export default function OneOnOneMentorsPage() {
 
               {/* ACTIONS */}
               <div className="flex gap-3">
-                <button className="flex-1 bg-sky-700 text-white py-2 rounded-xl font-semibold hover:opacity-90">
+                <button className="flex-1 bg-sky-900 text-white py-2 rounded-xl font-semibold hover:opacity-90">
                   Book Session
                 </button>
                 <button className="flex-1 border border-sky-600 text-sky-600 py-2 rounded-xl font-semibold hover:bg-sky-50">

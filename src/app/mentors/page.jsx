@@ -12,7 +12,10 @@ export default function MentorPage() {
       {/* HEADER */}
       <section className="text-center py-14 px-4">
         <h1 className="text-4xl font-extrabold mb-3">
-          Mentorship <span className="text-sky-600">Programs</span>
+          Mentorship   {"\t"}            
+          <span className="bg-gradient-to-r from-purple-500 to-pink-500" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+              Programs
+            </span>
         </h1>
         <p className="text-gray-600 max-w-xl mx-auto">
           Choose how you want to learn — personalized 1-on-1 guidance or
@@ -69,7 +72,7 @@ export default function MentorPage() {
 
               <button
                 onClick={() => router.push("/mentors/one-on-one")}
-                className="w-full bg-sky-700 text-white py-2 rounded-xl font-semibold hover:opacity-90"
+                className="w-full bg-sky-900 text-white py-2 rounded-xl font-semibold hover:opacity-90"
               >
                 Explore 1-on-1 Mentors
               </button>

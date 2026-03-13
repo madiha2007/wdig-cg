@@ -67,15 +67,15 @@ const team = [
   },
   {
     name: "Backend Developer",
-    img: "/assets/team/backend.jpeg",
+    img: "/assets/team/backend1.jpeg",
     role: "Building the Foundation",
-    icon: <Shield className="w-5 h-5" />,
+    icon: <Shield className="w-15 h-15" />,
     color: "bg-green-500",
     skills: ["Firebase", "APIs", "Security"],
   },
   {
     name: "Assessment & Researcher ",
-    img: "/assets/team/research.jpeg",
+    img: "/assets/team/dishu.jpeg",
     role: "Designing the Science",
     icon: <Brain className="w-5 h-5" />,
     color: "bg-purple-500",
@@ -83,7 +83,7 @@ const team = [
   },
   {
     name: "UI/UX Designer",
-    img: "/assets/team/ui.jpeg",
+    img: "/assets/team/mahek kazi.jpeg",
     role: "Shaping the Journey",
     icon: <Palette className="w-5 h-5" />,
     color: "bg-pink-500",

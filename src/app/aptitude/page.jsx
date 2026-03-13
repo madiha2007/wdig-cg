@@ -6,6 +6,7 @@ import { evaluateResponses } from "@/utils/evaluateResponses";
 import { useAssessment } from "@/app/context/AssessmentContext";
 import { auth } from "../../../firebase";
 import ProfileGate from "../../components/ProfileGate";
+import { onBackgroundMessage } from "firebase/messaging/sw";
 
 
 const AptitudeTest = () => {
@@ -251,7 +252,9 @@ const handleSubmit = async () => {
       </p>
 
 {/* Section Banner */}
-      <div className="flex justify-center items-center gap-4 bg-gradient-to-r from-teal-200 to-sky-200 rounded-xl px-6 py-4 mb-4">
+<div className="flex justify-center items-center gap-4 
+bg-[radial-gradient(circle,_#bae6fd_0%,_#0c4a6e_100%)] 
+rounded-xl px-6 py-4 mb-4">
             <img
                 src="/aptitude/logical.png"
                 alt="Test Icon"
@@ -267,7 +270,7 @@ const handleSubmit = async () => {
       <div className="flex items-center gap-3 mb-6">
         <div className="w-full h-8 bg-gray-200 rounded-full">
           <div
-            className="h-8 bg-gradient-to-r from-teal-300 to-sky-600 rounded-full"
+            className="h-8 bg-gradient-to-r from-sky-300 to-sky-900 rounded-full"
             style={{ width: `${overallProgress}%` }}
           />
         </div>
@@ -356,7 +359,7 @@ const handleSubmit = async () => {
 
             <button
               onClick={handleNext}
-              className="w-1/3 py-3 bg-gradient-to-r from-teal-200 to-sky-200 rounded-xl"
+              className="w-1/3 py-3 bg-sky-900 rounded-xl text-white font-semibold hover:opacity-90"
             >
               Next →
             </button>
@@ -374,7 +377,7 @@ const handleSubmit = async () => {
         </div>
 
         {/* Skill Progress */}
-        <div className="lg:col-span-1 bg-sky-100 rounded-xl p-4 space-y-4 h-[40vh] overflow-y-auto">
+        <div className="lg:col-span-1 border rounded-xl bg-gray-200 p-4 space-y-4 h-[45vh] overflow-y-auto">
 
           {sectionProgress.map(sec => (
             <div key={sec.title}>
@@ -384,7 +387,7 @@ const handleSubmit = async () => {
               </div>
               <div className="w-full h-2 bg-white rounded-full mt-2">
                 <div
-                  className="h-2 bg-blue-500 rounded-full transition-all duration-500"
+                  className="h-2 bg-sky-900 rounded-full transition-all duration-500"
                   style={{ width: `${sec.percentage}%` }}
                 />
               </div>

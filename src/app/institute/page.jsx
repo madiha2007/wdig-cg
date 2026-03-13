@@ -23,6 +23,8 @@ const TYPE_COLORS = {
   "Institute":      { bg: "bg-gray-50",   text: "text-gray-700",   dot: "bg-gray-500" },
 };
 
+const F = { fontFamily: "'Nunito', sans-serif" };
+
 function getDefaultImage(type) {
   return TYPE_IMAGES[type] || TYPE_IMAGES["Institute"];
 }
@@ -115,76 +117,142 @@ export default function Institutes() {
   }
 
   return (
-    <div className="w-full min-h-screen">
-
-      {/* Hero Header */}
-      <section className="relative overflow-hidden py-10 px-4">
-
-        <div className="relative max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-black mb-4 leading-none">
+    <div style={{ ...F, color: "#1e2a3a", background: "#f7f9fc", minHeight: "100vh" }}>
+ 
+      {/* ── GLOBAL STYLES ── */}
+      <style>{`
+        @keyframes pulse-dot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes shimmer {
+          0%{left:-60%;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:120%;opacity:0}
+        }
+        @keyframes spin-slow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+      `}</style>
+ 
+      {/* ════════════════════════════════
+          HERO
+      ════════════════════════════════ */}
+      <section style={{
+        background: "#ffffff",
+        padding: "64px 24px 56px",
+        textAlign: "center",
+        position: "relative",
+        overflow: "hidden",
+        borderBottom: "1px solid #e8edf3",
+      }}>
+        {/* Orbs */}
+        <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 70%)", top: -200, right: -80, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%)", bottom: -120, left: -60, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", border: "1.5px dashed rgba(139,92,246,0.15)", top: "50%", right: "8%", transform: "translateY(-50%)", animation: "spin-slow 30s linear infinite", pointerEvents: "none" }} />
+ 
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 600, margin: "0 auto" }}>
+          {/* Badge */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "rgba(219,234,254,0.7)", backdropFilter: "blur(8px)",
+            color: "#1e5fa8", borderRadius: 999, padding: "6px 16px",
+            fontSize: 11, fontWeight: 800, letterSpacing: "0.1em",
+            textTransform: "uppercase", marginBottom: 22,
+            border: "1px solid rgba(59,130,246,0.2)",
+            boxShadow: "0 2px 12px rgba(59,130,246,0.1)",
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse-dot 1.5s ease infinite" }} />
+            Maharashtra · {institutes.length}+ Institutes
+          </div>
+ 
+          {/* Heading */}
+          <h1 style={{
+            fontFamily: "'Lora', serif",
+            fontSize: "clamp(34px,5vw,54px)",
+            fontWeight: 600, color: "#1e2a3a",
+            lineHeight: 1.15, marginBottom: 16,
+          }}>
             Find Your{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-violet-400">
+            <span className="bg-gradient-to-r from-purple-500 to-pink-500" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
               Dream College
             </span>
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto">
-            Explore {institutes.length}+ top institutes across Maharashtra — with fees, placements & more.
+ 
+          <p style={{ fontSize: 16, color: "#3d4f63", lineHeight: 1.8, maxWidth: 440, margin: "0 auto" }}>
+            Explore top institutes with fees, placements, courses &amp; more — all in one place.
           </p>
         </div>
       </section>
-
-      {/* Sticky Filter Bar */}
-      <section className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm px-4 md:px-20 py-4">
-        <div className="flex flex-wrap gap-3 items-center">
+ 
+      {/* ════════════════════════════════
+          STICKY FILTER BAR
+      ════════════════════════════════ */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 30,
+        background: "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #e8edf3",
+        boxShadow: "0 2px 16px rgba(30,42,58,0.06)",
+        padding: "14px 24px",
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+ 
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div style={{ position: "relative", flex: "1 1 200px" }}>
+            <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#7a8fa6", pointerEvents: "none" }} width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
               type="text"
               placeholder="Search institutes..."
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", padding: "10px 14px 10px 38px",
+                border: "1.5px solid #e2e8f0", borderRadius: 12,
+                fontSize: 13, fontFamily: "'Nunito', sans-serif",
+                color: "#1e2a3a", outline: "none",
+                transition: "border .2s, box-shadow .2s",
+                boxSizing: "border-box",
+              }}
+              onFocus={(e) => { e.target.style.borderColor = "#7c3aed"; e.target.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.1)"; }}
+              onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
             />
           </div>
-
+ 
+          {/* Type select */}
           <select
-            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
             value={type}
             onChange={(e) => setType(e.target.value)}
+            style={{ padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 12, fontSize: 13, fontFamily: "'Nunito', sans-serif", color: "#1e2a3a", background: "#fff", outline: "none", cursor: "pointer" }}
           >
             <option value="">All Types</option>
             {types.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
-
+ 
+          {/* City select */}
           <select
-            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
             value={cityFilter}
             onChange={(e) => setCityFilter(e.target.value)}
+            style={{ padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 12, fontSize: 13, fontFamily: "'Nunito', sans-serif", color: "#1e2a3a", background: "#fff", outline: "none", cursor: "pointer" }}
           >
             <option value="">All Cities</option>
             {cities.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-
+ 
+          {/* Clear */}
           {(search || type || cityFilter) && (
             <button
               onClick={() => { setSearch(""); setType(""); setCityFilter(""); }}
-              className="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-2"
+              style={{ padding: "9px 14px", fontSize: 12, fontWeight: 700, color: "#7a8fa6", border: "1.5px solid #e2e8f0", borderRadius: 12, background: "#fff", cursor: "pointer", fontFamily: "'Nunito', sans-serif", display: "flex", alignItems: "center", gap: 6, transition: "all .2s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#1e2a3a"; e.currentTarget.style.background = "#f1f5f9"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#7a8fa6"; e.currentTarget.style.background = "#fff"; }}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               Clear
             </button>
           )}
-
-          <span className="ml-auto text-xs text-gray-400 font-medium">
+ 
+          <span style={{ marginLeft: "auto", fontSize: 12, color: "#7a8fa6", fontWeight: 700 }}>
             {filteredInstitutes.length} results
           </span>
         </div>
-      </section>
+      </div>
 
       {/* Cards Grid */}
       <section className="px-4 md:px-20 py-10">

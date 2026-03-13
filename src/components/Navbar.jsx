@@ -64,7 +64,7 @@ useEffect(() => {
   return (
     <>
       {/* HEADER */}
-      <header className="w-full bg-sky-100 py-4 px-6 md:px-12 flex items-center justify-between z-50">
+      <header className="w-full bg-sky-100 py-4 px-6 md:px-12 flex items-center justify-between z-50 sticky top-0 shadow-sm">
         {/* LOGO */}
         <div className="flex items-center gap-3">
           <Image src={icons.logo} alt="Logo" width={40} height={40} />

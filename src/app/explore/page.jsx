@@ -1,281 +1,3 @@
-// // "use client";
-
-// // import { useState } from "react";
-// // import Navbar from "@/components/Navbar";
-// // import CareerCard from "@/components/CareerCard";
-// // import { careersData } from "@/data/careersData";
-// // import { Search } from "lucide-react";
-
-// // export default function ExploreCareersPage() {
-// //   const [search, setSearch] = useState("");
-
-// //   const filteredCareers = careersData.filter((career) =>
-// //     career.title.toLowerCase().includes(search.toLowerCase()) ||
-// //     career.domain?.toLowerCase().includes(search.toLowerCase()) ||
-// //     career.skills?.some((skill) =>
-// //       skill.toLowerCase().includes(search.toLowerCase())
-// //     )
-// //   );
-
-// //   return (
-// //     <div className="min-h-screen">
-
-// //       <div className="px-6 py-10 max-w-7xl mx-auto">
-// //         {/* Heading */}
-// //         <div className="text-center">
-// //           <h1 className="text-3xl font-bold">
-// //             Explore Professional Careers
-// //           </h1>
-// //           <p className="text-gray-600 mt-2">
-// //             Discover career paths from after 10th grade through professional success.
-// //           </p>
-// //         </div>
-
-// //         {/* Search */}
-// //         <div className="mt-6 flex items-center bg-blue-50 rounded-full px-4 py-3">
-// //           <Search className="text-gray-400" size={20} />
-// //           <input
-// //             type="text"
-// //             value={search}
-// //             onChange={(e) => setSearch(e.target.value)}
-// //             placeholder="Search and know more about the careers you like..."
-// //             className="bg-transparent outline-none ml-3 w-full"
-// //           />
-// //         </div>
-
-// //         {/* Results Count */}
-// //         <p className="mt-4 text-sm text-gray-500">
-// //           Showing {filteredCareers.length} careers
-// //         </p>
-
-// //         {/* Career Cards */}
-// //         {filteredCareers.length === 0 ? (
-// //           <p className="text-center text-gray-500 mt-10">
-// //             No careers found 😕
-// //           </p>
-// //         ) : (
-// //           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-// //             {filteredCareers.map((career) => (
-// //               <CareerCard key={career.id} career={career} />
-// //             ))}
-// //           </div>
-// //         )}
-// //       </div>
-// //     </div>
-// //   );
-// // }
-
-
-
-// "use client";
-
-// import { useState, useEffect, useCallback } from "react";
-// import Navbar from "@/components/Navbar";
-// import CareerCard from "@/components/CareerCard";
-// import { Search, Loader2, SlidersHorizontal } from "lucide-react";
-
-// const DOMAINS = [
-//   { label: "All", value: "all", emoji: "🌐" },
-//   { label: "Technology", value: "Technology", emoji: "💻" },
-//   { label: "Medicine", value: "Medicine", emoji: "🩺" },
-//   { label: "Engineering", value: "Engineering", emoji: "⚙️" },
-//   { label: "Finance", value: "Finance", emoji: "💰" },
-//   { label: "Law", value: "Law", emoji: "⚖️" },
-//   { label: "Arts & Design", value: "Arts", emoji: "🎨" },
-//   { label: "Education", value: "Education", emoji: "📚" },
-//   { label: "Business", value: "Business", emoji: "📊" },
-// ];
-
-// const SORT_OPTIONS = [
-//   { label: "Relevance", value: "relevance" },
-//   { label: "Salary ↑", value: "salary_asc" },
-//   { label: "Salary ↓", value: "salary_desc" },
-//   { label: "Bright Outlook", value: "outlook" },
-// ];
-
-// export default function ExploreCareersPage() {
-//   const [search, setSearch] = useState("");
-//   const [debouncedSearch, setDebouncedSearch] = useState("");
-//   const [activeDomain, setActiveDomain] = useState("all");
-//   const [sort, setSort] = useState("relevance");
-//   const [careers, setCareers] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [total, setTotal] = useState(0);
-
-//   // Debounce search
-//   useEffect(() => {
-//     const timer = setTimeout(() => setDebouncedSearch(search), 400);
-//     return () => clearTimeout(timer);
-//   }, [search]);
-
-//   const fetchCareers = useCallback(async () => {
-//     setLoading(true);
-//     setError(null);
-//     try {
-//       const params = new URLSearchParams();
-//       if (activeDomain !== "all") params.set("domain", activeDomain);
-//       if (debouncedSearch) params.set("keyword", debouncedSearch);
-
-//       const res = await fetch(`/api/careers?${params}`);
-//       if (!res.ok) throw new Error("Failed to fetch careers");
-//       const data = await res.json();
-//       if (data.error) throw new Error(data.error);
-
-//       let sorted = [...(data.careers || [])];
-//       if (sort === "salary_asc") {
-//         sorted.sort((a, b) => (a.salary?.median || 0) - (b.salary?.median || 0));
-//       } else if (sort === "salary_desc") {
-//         sorted.sort((a, b) => (b.salary?.median || 0) - (a.salary?.median || 0));
-//       } else if (sort === "outlook") {
-//         sorted.sort((a, b) => (b.bright_outlook ? 1 : 0) - (a.bright_outlook ? 1 : 0));
-//       }
-
-//       setCareers(sorted);
-//       setTotal(data.total || sorted.length);
-//     } catch (err) {
-//       setError(err.message);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [activeDomain, debouncedSearch, sort]);
-
-//   useEffect(() => {
-//     fetchCareers();
-//   }, [fetchCareers]);
-
-//   return (
-//     <div className="min-h-screen bg-[#f8f7f4]">
-
-//       {/* Hero */}
-//       <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600 text-white">
-//         <div className="absolute inset-0 opacity-10"
-//           style={{
-//             backgroundImage: `radial-gradient(circle at 20% 50%, white 1px, transparent 1px),
-//               radial-gradient(circle at 80% 20%, white 1px, transparent 1px)`,
-//             backgroundSize: "60px 60px",
-//           }}
-//         />
-//         <div className="relative px-6 py-16 max-w-5xl mx-auto text-center">
-//           <span className="inline-block bg-white/10 border border-white/20 text-sm px-4 py-1 rounded-full mb-4 backdrop-blur-sm">
-//             Powered by O*NET · U.S. Department of Labor
-//           </span>
-//           <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-tight">
-//             Find Your <span className="text-yellow-300">Dream Career</span>
-//           </h1>
-//           <p className="text-blue-100 mt-4 text-lg max-w-2xl mx-auto">
-//             Explore thousands of real career paths with live salary data, growth outlooks, and skill requirements.
-//           </p>
-
-//           {/* Search Bar */}
-//           <div className="mt-8 flex items-center bg-white rounded-2xl px-5 py-4 shadow-2xl max-w-2xl mx-auto">
-//             <Search className="text-gray-400 shrink-0" size={20} />
-//             <input
-//               type="text"
-//               value={search}
-//               onChange={(e) => setSearch(e.target.value)}
-//               placeholder="Search careers, skills, or keywords..."
-//               className="bg-transparent outline-none ml-3 w-full text-gray-800 placeholder-gray-400"
-//             />
-//             {search && (
-//               <button
-//                 onClick={() => setSearch("")}
-//                 className="text-gray-400 hover:text-gray-600 text-sm ml-2"
-//               >
-//                 ✕
-//               </button>
-//             )}
-//           </div>
-//         </div>
-//       </div>
-
-//       <div className="px-6 py-8 max-w-7xl mx-auto">
-
-//         {/* Domain Filter Chips */}
-//         <div className="flex items-center gap-2 flex-wrap">
-//           {DOMAINS.map((d) => (
-//             <button
-//               key={d.value}
-//               onClick={() => setActiveDomain(d.value)}
-//               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 ${
-//                 activeDomain === d.value
-//                   ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
-//                   : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
-//               }`}
-//             >
-//               <span>{d.emoji}</span>
-//               {d.label}
-//             </button>
-//           ))}
-
-//           {/* Sort */}
-//           <div className="ml-auto flex items-center gap-2">
-//             <SlidersHorizontal size={16} className="text-gray-400" />
-//             <select
-//               value={sort}
-//               onChange={(e) => setSort(e.target.value)}
-//               className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 outline-none"
-//             >
-//               {SORT_OPTIONS.map((opt) => (
-//                 <option key={opt.value} value={opt.value}>{opt.label}</option>
-//               ))}
-//             </select>
-//           </div>
-//         </div>
-
-//         {/* Results Count */}
-//         <div className="mt-5 flex items-center justify-between">
-//           <p className="text-sm text-gray-500">
-//             {loading ? "Loading careers..." : `Showing ${careers.length} of ${total}+ careers`}
-//           </p>
-//         </div>
-
-//         {/* States */}
-//         {loading && (
-//           <div className="flex flex-col items-center justify-center py-28 gap-4 text-gray-400">
-//             <Loader2 size={36} className="animate-spin text-indigo-500" />
-//             <p className="text-sm">Fetching live career data from O*NET...</p>
-//           </div>
-//         )}
-
-//         {error && (
-//           <div className="mt-10 text-center py-16 bg-red-50 rounded-2xl border border-red-100">
-//             <p className="text-red-500 font-medium">⚠️ {error}</p>
-//             <p className="text-sm text-gray-500 mt-2">
-//               Make sure your <code className="bg-gray-100 px-1 rounded">ONET_USERNAME</code> and{" "}
-//               <code className="bg-gray-100 px-1 rounded">ONET_PASSWORD</code> are set in{" "}
-//               <code className="bg-gray-100 px-1 rounded">.env.local</code>
-//             </p>
-//             <button
-//               onClick={fetchCareers}
-//               className="mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm hover:bg-indigo-700"
-//             >
-//               Retry
-//             </button>
-//           </div>
-//         )}
-
-//         {!loading && !error && careers.length === 0 && (
-//           <div className="mt-10 text-center py-24">
-//             <p className="text-5xl">🔍</p>
-//             <p className="text-gray-600 mt-4 font-medium">No careers found for "{search}"</p>
-//             <p className="text-sm text-gray-400 mt-1">Try a different keyword or domain</p>
-//           </div>
-//         )}
-
-//         {!loading && !error && careers.length > 0 && (
-//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-//             {careers.map((career) => (
-//               <CareerCard key={career.id} career={career} />
-//             ))}
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -284,15 +6,15 @@ import { Search, Loader2, TrendingUp, Star, Zap, ChevronDown, X, Briefcase, Grad
 
 /* ─── Domain Config ─────────────────────────────────────────── */
 const DOMAINS = [
-  { label: "All Fields", value: "all", emoji: "✦", color: "#6366f1" },
-  { label: "Technology", value: "Technology", emoji: "💻", color: "#3b82f6" },
-  { label: "Medicine", value: "Medicine", emoji: "🩺", color: "#ef4444" },
+  { label: "All Fields", value: "all", emoji: "✦", color: "#a8a9f2" },
+  { label: "Technology", value: "Technology", emoji: "💻", color: "#a7c7fc" },
+  { label: "Medicine", value: "Medicine", emoji: "🩺", color: "#fda8a8" },
   { label: "Engineering", value: "Engineering", emoji: "⚙️", color: "#f59e0b" },
-  { label: "Finance", value: "Finance", emoji: "💰", color: "#10b981" },
-  { label: "Law", value: "Law", emoji: "⚖️", color: "#8b5cf6" },
-  { label: "Arts & Design", value: "Arts", emoji: "🎨", color: "#ec4899" },
-  { label: "Education", value: "Education", emoji: "📚", color: "#14b8a6" },
-  { label: "Business", value: "Business", emoji: "📊", color: "#f97316" },
+  { label: "Finance", value: "Finance", emoji: "💰", color: "#85b5a5" },
+  { label: "Law", value: "Law", emoji: "⚖️", color: "#bda8ef" },
+  { label: "Arts & Design", value: "Arts", emoji: "🎨", color: "#e99cc2" },
+  { label: "Education", value: "Education", emoji: "📚", color: "#84b8b2" },
+  { label: "Business", value: "Business", emoji: "📊", color: "#f2b991" },
 ];
 
 const SORT_OPTIONS = [
@@ -326,17 +48,17 @@ function Background() {
     <div style={{ position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
       <div style={{
         position: "absolute", width: 600, height: 600, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)",
+        background: "radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%)",
         top: "-200px", left: "-100px", animation: "drift1 18s ease-in-out infinite"
       }} />
       <div style={{
         position: "absolute", width: 500, height: 500, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 70%)",
+        background: "radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%)",
         bottom: "10%", right: "-100px", animation: "drift2 22s ease-in-out infinite"
       }} />
       <div style={{
         position: "absolute", width: 400, height: 400, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)",
+        background: "radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%)",
         top: "40%", left: "40%", animation: "drift3 26s ease-in-out infinite"
       }} />
       <style>{`
@@ -599,123 +321,213 @@ export default function ExploreCareersPage() {
       `}</style>
 
       {/* ── Hero ───────────────────────────────────────────── */}
-      <div style={{
-        position: "relative", zIndex: 1,
-        background: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 60%, #e0f2fe 100%)",
-        overflow: "hidden", paddingBottom: 60
-      }}>
-        {/* Grid pattern */}
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
-          backgroundSize: "60px 60px"
-        }} />
+{/* ── Hero ───────────────────────────────────────────── */}
+<div
+  className="bg-sky-900"
+  style={{
+    position: "relative",
+    zIndex: 1,
+    overflow: "hidden",
+    paddingBottom: 60
+  }}
+>
+  {/* grid pattern */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      backgroundImage:
+        "linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)",
+      backgroundSize: "60px 60px"
+    }}
+  />
 
-        {/* Glowing spots */}
-        <div style={{ position: "relative", maxWidth: 900, margin: "0 auto", padding: "80px 24px 0" }}>
-          {/* Badge */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.4)",
-              color: "#4338ca", borderRadius: 100, padding: "8px 20px",
-              fontSize: 13, fontWeight: 600, backdropFilter: "blur(8px)"
-            }}>
-              <Sparkles size={14} />
-              Powered by O*NET · U.S. Department of Labor
-            </div>
-          </div>
-
-          {/* Headline */}
-          <h1 style={{
-            textAlign: "center", fontSize: "clamp(36px, 6vw, 64px)",
-            fontFamily: "'Playfair Display', serif",
-            fontWeight: 900, color: "#1e3a5f", lineHeight: 1.1, marginBottom: 16
-          }}>
-            Discover Your{" "}
-            <span style={{
-              background: "linear-gradient(135deg, #818cf8, #c084fc, #f472b6)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
-            }}>Perfect Career</span>
-          </h1>
-          <p style={{
-            textAlign: "center", color: "#4b6a8a", fontSize: 17,
-            lineHeight: 1.7, maxWidth: 560, margin: "0 auto 36px"
-          }}>
-            Explore thousands of real career paths with live salary data,
-            growth outlooks, and the skills you'll need to succeed.
-          </p>
-
-          {/* Search */}
-          <div style={{
-            position: "relative", maxWidth: 680, margin: "0 auto",
-            transition: "transform 0.2s",
-            transform: searchFocused ? "scale(1.02)" : "scale(1)"
-          }}>
-            <div style={{
-              position: "absolute", inset: -2, borderRadius: 20,
-              background: searchFocused
-                ? "linear-gradient(135deg, #6366f1, #ec4899)"
-                : "transparent",
-              transition: "all 0.3s", zIndex: -1
-            }} />
-            <div style={{
-              display: "flex", alignItems: "center",
-              background: "#fff", borderRadius: 18,
-              padding: "16px 20px", gap: 12,
-              boxShadow: searchFocused
-                ? "0 20px 60px rgba(99,102,241,0.3)"
-                : "0 8px 30px rgba(0,0,0,0.2)"
-            }}>
-              <Search size={20} color={searchFocused ? "#6366f1" : "#9ca3af"} style={{ transition: "color 0.2s", flexShrink: 0 }} />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                placeholder="Search by career, skill, or keyword..."
-                style={{
-                  flex: 1, border: "none", outline: "none", fontSize: 16,
-                  color: "#111827", background: "transparent",
-                  fontFamily: "'DM Sans', sans-serif"
-                }}
-              />
-              {search && (
-                <button onClick={() => setSearch("")} style={{
-                  background: "#f3f4f6", border: "none", borderRadius: "50%",
-                  width: 28, height: 28, display: "flex", alignItems: "center",
-                  justifyContent: "center", cursor: "pointer", color: "#6b7280"
-                }}>
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Domain pills inside hero */}
-          <div style={{
-            display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center",
-            marginTop: 28
-          }}>
-            {DOMAINS.map(d => (
-              <button key={d.value} onClick={() => setActiveDomain(d.value)} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "8px 18px", borderRadius: 100, fontSize: 13, fontWeight: 600,
-                cursor: "pointer", transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-                border: activeDomain === d.value ? `1.5px solid ${d.color}` : "1.5px solid rgba(0,0,0,0.12)",
-                background: activeDomain === d.value ? `${d.color}20` : "rgba(255,255,255,0.8)",
-                color: activeDomain === d.value ? d.color : "#374151",
-                transform: activeDomain === d.value ? "scale(1.05)" : "scale(1)",
-                boxShadow: activeDomain === d.value ? `0 4px 20px ${d.color}40` : "none",
-                backdropFilter: "blur(8px)"
-              }}>
-                <span>{d.emoji}</span> {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
+  <div style={{ position: "relative", maxWidth: 900, margin: "0 auto", padding: "80px 24px 0" }}>
+    
+    {/* Badge */}
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          background: "rgba(255,255,255,0.15)",
+          border: "1px solid rgba(255,255,255,0.25)",
+          color: "#e0f2fe",
+          borderRadius: 100,
+          padding: "8px 20px",
+          fontSize: 13,
+          fontWeight: 600,
+          backdropFilter: "blur(8px)"
+        }}
+      >
+        <Sparkles size={14} />
+        Powered by O*NET · U.S. Department of Labor
       </div>
+    </div>
+
+    {/* Headline */}
+    <h1
+      style={{
+        textAlign: "center",
+        fontSize: "clamp(36px, 6vw, 64px)",
+        fontFamily: "'Playfair Display', serif",
+        fontWeight: 900,
+        color: "#ffffff",
+        lineHeight: 1.1,
+        marginBottom: 16
+      }}
+    >
+      Discover Your{" "}
+      <span
+        className="bg-gradient-to-r from-purple-400 to-pink-400"
+        style={{
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent"
+        }}
+      >
+        Perfect Career
+      </span>
+    </h1>
+
+    {/* Subtitle */}
+    <p
+      style={{
+        textAlign: "center",
+        color: "rgba(255,255,255,0.75)",
+        fontSize: 17,
+        lineHeight: 1.7,
+        maxWidth: 560,
+        margin: "0 auto 36px"
+      }}
+    >
+      Explore thousands of real career paths with live salary data,
+      growth outlooks, and the skills you'll need to succeed.
+    </p>
+
+    {/* Search */}
+    <div
+      style={{
+        position: "relative",
+        maxWidth: 680,
+        margin: "0 auto",
+        transition: "transform 0.2s",
+        transform: searchFocused ? "scale(1.02)" : "scale(1)"
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: -2,
+          borderRadius: 20,
+          background: searchFocused
+            ? "linear-gradient(135deg, #38bdf8, #818cf8)"
+            : "transparent",
+          transition: "all 0.3s",
+          zIndex: -1
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          background: "#ffffff",
+          borderRadius: 18,
+          padding: "16px 20px",
+          gap: 12,
+          boxShadow: searchFocused
+            ? "0 20px 60px rgba(0,0,0,0.35)"
+            : "0 8px 30px rgba(0,0,0,0.25)"
+        }}
+      >
+        <Search
+          size={20}
+          color={searchFocused ? "#0ea5e9" : "#9ca3af"}
+          style={{ transition: "color 0.2s", flexShrink: 0 }}
+        />
+
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          placeholder="Search by career, skill, or keyword..."
+          style={{
+            flex: 1,
+            border: "none",
+            outline: "none",
+            fontSize: 16,
+            color: "#111827",
+            background: "transparent",
+            fontFamily: "'DM Sans', sans-serif"
+          }}
+        />
+
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            style={{
+              background: "#f0f9ff",
+              border: "none",
+              borderRadius: "50%",
+              width: 28,
+              height: 28,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: "#0369a1"
+            }}
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+
+    {/* Domain pills */}
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 10,
+        justifyContent: "center",
+        marginTop: 28
+      }}
+    >
+      {DOMAINS.map(d => (
+        <button
+          key={d.value}
+          onClick={() => setActiveDomain(d.value)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 18px",
+            borderRadius: 100,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            border:
+              activeDomain === d.value
+                ? `1.5px solid ${d.color}`
+                : "1.5px solid rgba(255,255,255,0.25)",
+            background:
+              activeDomain === d.value
+                ? `${d.color}30`
+                : "rgba(255,255,255,0.12)",
+            color: activeDomain === d.value ? d.color : "#e5e7eb",
+            backdropFilter: "blur(8px)"
+          }}
+        >
+          <span>{d.emoji}</span> {d.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
 
       {/* ── Content ─────────────────────────────────────────── */}
       <div style={{ position: "relative", zIndex: 1, maxWidth: 1280, margin: "0 auto", padding: "40px 24px" }}>
