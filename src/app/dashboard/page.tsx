@@ -660,8 +660,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!userData.email) return;
     import("firebase/firestore").then(async ({ doc, getDoc }) => {
-      const { db }   = await import("../../firebase");
-      const { auth } = await import("../../firebase");
+      const { db }   = await import("../../../firebase");
+      const { auth } = await import("../../../firebase");
       const uid = auth.currentUser?.uid;
       if (!uid) return;
       const snap = await getDoc(doc(db, "activities", uid));

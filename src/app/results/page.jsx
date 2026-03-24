@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAssessment } from "@/app/context/AssessmentContext";
-import { auth } from "../../firebase";
+import { auth } from "../../../firebase";
 
 function humanLabel(key) {
   const LABELS = {

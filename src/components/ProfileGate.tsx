@@ -15,7 +15,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "../firebase";
+import { auth } from "../../firebase";
 
 const T = {
   ink: "#0D1B2A", inkMid: "#2C3E50", inkLight: "#5D7A8A",

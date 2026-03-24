@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { evaluateResponses } from "@/utils/evaluateResponses";
 import { useAssessment } from "@/app/context/AssessmentContext";
-import { auth } from "../../firebase";
+import { auth } from "../../../firebase";
 import ProfileGate from "../../components/ProfileGate";
 import { useUser } from "@/app/context/UserContext"; // add this
 
@@ -208,7 +208,7 @@ const AptitudeTest = () => {
     await refreshUser(); // pulls fresh prediction from DB into context
     // 5. Save to Firestore
     try {
-      const { auth, db } = await import("../../firebase");
+      const { auth, db } = await import("../../../firebase");
       const { doc, setDoc, getDoc } = await import("firebase/firestore");
       const user = auth.currentUser;
 

@@ -9,7 +9,7 @@ import {
   X, Camera, Save, Loader2, Plus, Music, Target,
 } from "lucide-react";
 import { useUser, UserData } from "../app/context/UserContext"; // adjust path
-import { auth, db } from "../firebase";
+import { auth, db } from "../../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
