@@ -1,0 +1,412 @@
+"use client";
+
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { evaluateResponses } from "@/utils/evaluateResponses";
+import { useAssessment } from "@/app/context/AssessmentContext";
+import { auth } from "../../../firebase";
+import ProfileGate from "../../components/ProfileGate";
+import { useUser } from "@/app/context/UserContext"; // add this
+
+
+
+const AptitudeTest = () => {
+  const router = useRouter();
+  const { finalizeAssessment, userProfile } = useAssessment();
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [skippedQuestions, setSkippedQuestions] = useState(new Set());
+  const [questionStartTime, setQuestionStartTime] = useState(null);
+  const [answerTimes, setAnswerTimes] = useState({});
+  const hasSubmitted = useRef(false);
+  const { refreshUser } = useUser();
+
+
+  // ✅ Fetch Questions
+  useEffect(() => {
+    fetch("http://localhost:5000/api/questions")
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("API failed");
+        }
+        return res.json();
+      })
+      .then(data => setQuestions(data))
+      .catch(err => {
+        console.error("Fetch error:", err);
+      });
+  }, []);
+
+  useEffect(() => {
+    setQuestionStartTime(Date.now());
+  }, [currentQuestionIndex, currentSectionIndex]);
+
+  // ✅ Group Questions by Section
+  const sections = useMemo(() => {
+    if (!questions.length) return [];
+    return Object.values(
+      questions.reduce((acc, q) => {
+        acc[q.section] ??= { title: q.section, questions: [] };
+        acc[q.section].questions.push(q);
+        return acc;
+      }, {})
+    );
+  }, [questions]);
+
+  if (!sections.length) {
+    return <div className="p-6">Loading questions...</div>;
+  }
+
+  const currentSection = sections[currentSectionIndex];
+  const currentQuestion = currentSection.questions[currentQuestionIndex];
+  const isPersonalityQuestion =
+    typeof currentQuestion.options[0] === "object";
+
+  // ✅ Progress
+  const totalQuestions = sections.reduce(
+    (sum, sec) => sum + sec.questions.length,
+    0
+  );
+
+  const totalAnswered = Object.keys(answers).length;
+  const overallProgress = Math.round(
+    (totalAnswered / totalQuestions) * 100
+  );
+
+  const sectionProgress = sections.map(section => {
+    const completed = section.questions.filter(
+      q => answers[q.id] !== undefined
+    ).length;
+    return {
+      title: section.title,
+      percentage: Math.round(
+        (completed / section.questions.length) * 100
+      )
+    };
+  });
+
+  // ✅ Answer Handler
+  const handleAnswerSelect = (index) => {
+    // ⏱️ record time
+    if (questionStartTime) {
+      const timeTaken =
+        (Date.now() - questionStartTime) / 1000;
+
+      setAnswerTimes((prev) => ({
+        ...prev,
+        [currentQuestion.id]: timeTaken,
+      }));
+    }
+
+
+    setSelectedOption(index);
+
+    const value = isPersonalityQuestion
+      ? currentQuestion.options[index].label
+      : index;
+
+    setAnswers((prev) => ({
+      ...prev,
+      [currentQuestion.id]: value,
+    }));
+
+    setSkippedQuestions((prev) => {
+      const copy = new Set(prev);
+      copy.delete(currentQuestion.id);
+      return copy;
+    });
+  };
+
+
+  // ✅ Navigation
+  const handleNext = () => {
+    if (selectedOption === null) return;
+    setSelectedOption(null);
+
+    if (currentQuestionIndex + 1 < currentSection.questions.length) {
+      setCurrentQuestionIndex(i => i + 1);
+    } else if (currentSectionIndex + 1 < sections.length) {
+      setCurrentSectionIndex(i => i + 1);
+      setCurrentQuestionIndex(0);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(i => i - 1);
+    } else if (currentSectionIndex > 0) {
+      const prevSection = sections[currentSectionIndex - 1];
+      setCurrentSectionIndex(i => i - 1);
+      setCurrentQuestionIndex(prevSection.questions.length - 1);
+    }
+  };
+
+  const handleNotSure = () => {
+    setSkippedQuestions(prev => new Set(prev).add(currentQuestion.id));
+    setSelectedOption(null);
+    handleNext();
+  };
+
+  // ✅ Submit
+  // ================================================================
+  //  ONLY REPLACE the handleSubmit function in your AptitudeTest.jsx
+  //  Everything else stays exactly the same.
+  //  
+  //  Find your current handleSubmit and replace it with this:
+  // ================================================================
+
+  const handleSubmit = async () => {
+
+    console.log("🔍 Current user:", auth.currentUser?.uid);  // ADD THIS
+    console.log("🔍 Answers count:", Object.keys(answers).length);  // ADD THIS
+
+    if (hasSubmitted.current) return;
+    hasSubmitted.current = true;
+
+    // 1. Build raw trait scores from answers (your existing evaluateResponses)
+    const rawTraitScores = evaluateResponses(answers);
+
+    // 2. Compute confidence from timing
+    const times = Object.values(answerTimes);
+    const avgTime = times.reduce((a, b) => a + b, 0) / Math.max(times.length, 1);
+    const MAX_TIME = 20;
+    const confidence = Math.max(0, Math.min(1, 1 - avgTime / MAX_TIME));
+    const skipPenalty = skippedQuestions.size / totalQuestions;
+    const adjustedConfidence = Math.max(0, Math.min(1, confidence - skipPenalty * 0.3));
+
+    const finalResult = {
+      traits: rawTraitScores.traits,
+      meta: { ...rawTraitScores.meta, confidence: adjustedConfidence },
+    };
+
+    // 3. Call Node API → Python ML
+    let mlResult = null;
+    try {
+      const res = await fetch("http://localhost:5000/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers, firebase_uid: auth.currentUser?.uid || null, }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        mlResult = data.prediction; // ← the Python ML response
+      } else {
+        console.warn("ML API returned error:", res.status);
+      }
+    } catch (err) {
+      console.warn("ML API unavailable, continuing without prediction:", err.message);
+    }
+
+    // 4. Finalize — store everything in context
+    finalizeAssessment(finalResult, answers, mlResult);
+
+    await refreshUser(); // pulls fresh prediction from DB into context
+    // 5. Save to Firestore
+    try {
+      const { auth, db } = await import("../../../firebase");
+      const { doc, setDoc, getDoc } = await import("firebase/firestore");
+      const user = auth.currentUser;
+
+      if (user) {
+        // Save assessment results
+        await setDoc(doc(db, "assessments", user.uid), {
+          ...mlResult,
+          normalizedTraits: userProfile?.normalizedTraits ?? finalResult.traits,
+          savedAt: new Date().toISOString(),
+        });
+
+        // Save activity
+        const actRef = doc(db, "activities", user.uid);
+        const actSnap = await getDoc(actRef);
+        const existing = actSnap.exists() ? (actSnap.data().items || []) : [];
+        await setDoc(actRef, {
+          items: [
+            {
+              id: Date.now().toString(),
+              type: "assessment",
+              title: "Completed Aptitude Assessment",
+              date: new Date().toISOString(),
+              icon: "🧠"
+            },
+            ...existing
+          ].slice(0, 20)
+        });
+      }
+    } catch (err) {
+      console.error("❌ ML API error:", err.message);  // change warn to error
+      alert("API Error: " + err.message);               // add this line temporarily
+    }
+
+    router.push("/results");
+  };
+
+
+
+  return (
+    <div className="min-h-screen bg-white p-6">
+      {/* Header */}
+      <h1 className="text-4xl font-semibold mb-1">Aptitude Test</h1>
+      <p className="text-gray-500 mb-4">
+        {sections.length} Sections · {totalQuestions} Questions
+      </p>
+
+      {/* Section Banner */}
+      <div className="flex justify-center items-center gap-4 
+bg-[radial-gradient(circle,_#bae6fd_0%,_#0c4a6e_100%)] 
+rounded-xl px-6 py-4 mb-4">
+        <img
+          src="/aptitude/logical.png"
+          alt="Test Icon"
+          className="w-12 h-12 object-contain"
+        />
+        <div className="text-center">
+          <h2 className="text-3xl font-semibold">{currentSection.title}</h2>
+          <p className="text-lg">Section {currentSectionIndex + 1}</p>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-full h-8 bg-gray-200 rounded-full">
+          <div
+            className="h-8 bg-gradient-to-r from-sky-300 to-sky-900 rounded-full"
+            style={{ width: `${overallProgress}%` }}
+          />
+        </div>
+        <span className="font-semibold">{overallProgress}%</span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        {/* Sections Panel */}
+        <div className="lg:col-span-1 border rounded-xl p-4 h-[45vh] overflow-y-auto">
+          <h3 className="font-semibold mb-3">Sections</h3>
+
+          {sections.map((section, sIndex) => (
+            <details key={section.title} open={sIndex === currentSectionIndex} className="mb-4">
+              <summary className="cursor-pointer font-medium">
+                {section.title}
+              </summary>
+
+              <div className="grid grid-cols-5 gap-2 mt-3">
+                {section.questions.map((q, qIndex) => {
+                  const answered = answers[q.id] !== undefined;
+                  const skipped = skippedQuestions.has(q.id);
+
+                  return (
+                    <button
+                      key={q.id}
+                      onClick={() => {
+                        setCurrentSectionIndex(sIndex);
+                        setCurrentQuestionIndex(qIndex);
+                        setSelectedOption(
+                          answers[q.id] !== undefined
+                            ? currentSection.questions[qIndex].options.findIndex(
+                              (opt, i) =>
+                                (typeof opt === "object" ? opt.label : i) === answers[q.id]
+                            )
+                            : null
+                        );
+
+                      }}
+                      className={`h-8 w-8 rounded text-sm font-medium
+                        ${answered ? "bg-green-400 text-white"
+                          : skipped ? "bg-yellow-400 text-black"
+                            : "bg-gray-200"} hover:scale-105 transition-transform`}
+                    >
+                      {qIndex + 1}
+                    </button>
+                  );
+                })}
+              </div>
+            </details>
+          ))}
+        </div>
+
+        {/* Question */}
+        <div className="lg:col-span-3 border rounded-xl p-6 h-[45vh] overflow-y-auto">
+          <h3 className="font-semibold mb-4">
+            {currentQuestion.question}
+          </h3>
+
+          {currentQuestion.options.map((option, i) => (
+            <label key={i} className="flex gap-2 mb-2 cursor-pointer">
+              <input
+                type="radio"
+                checked={selectedOption === i}
+                onChange={() => handleAnswerSelect(i)}
+              />
+              <span>
+                {isPersonalityQuestion ? option.label : option}
+              </span>
+            </label>
+          ))}
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={handlePrevious}
+              className="w-1/3 py-3 bg-gray-200 rounded-xl"
+            >
+              ← Previous
+            </button>
+
+            <button
+              onClick={handleNotSure}
+              className="w-1/3 py-3 bg-yellow-300 rounded-xl"
+            >
+              Not Sure
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="w-1/3 py-3 bg-sky-900 rounded-xl text-white font-semibold hover:opacity-90"
+            >
+              Next →
+            </button>
+          </div>
+
+          {currentSectionIndex === sections.length - 1 &&
+            currentQuestionIndex === currentSection.questions.length - 1 && (
+              <button
+                onClick={handleSubmit}
+                className="mt-3 w-full bg-green-500 text-white py-3 rounded-xl font-semibold"
+              >
+                Submit Test
+              </button>
+            )}
+        </div>
+
+        {/* Skill Progress */}
+        <div className="lg:col-span-1 border rounded-xl bg-gray-200 p-4 space-y-4 h-[45vh] overflow-y-auto">
+
+          {sectionProgress.map(sec => (
+            <div key={sec.title}>
+              <div className="flex justify-between text-sm mt-4">
+                <span>{sec.title}</span>
+                <span>{sec.percentage}%</span>
+              </div>
+              <div className="w-full h-2 bg-white rounded-full mt-2">
+                <div
+                  className="h-2 bg-sky-900 rounded-full transition-all duration-500"
+                  style={{ width: `${sec.percentage}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function AptitudePage() {
+  return (
+    <ProfileGate>
+      <AptitudeTest />
+    </ProfileGate>
+  );
+}
