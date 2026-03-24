@@ -208,7 +208,7 @@ const AptitudeTest = () => {
     await refreshUser(); // pulls fresh prediction from DB into context
     // 5. Save to Firestore
     try {
-      const { auth, db } = await import("../../../firebase");
+      const { auth, db } = await import("../../firebase");
       const { doc, setDoc, getDoc } = await import("firebase/firestore");
       const user = auth.currentUser;
 
