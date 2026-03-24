@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "@firebase";
+import { auth } from "../../firebase";
 import Link from "next/link";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@firebase";
+import { db } from "../../firebase";
 
 export default function RegisterPage() {
   const router = useRouter();
