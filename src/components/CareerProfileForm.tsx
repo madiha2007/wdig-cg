@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth } from "../../firebase";
+import { auth } from "../firebase";
 
 // ── Design tokens — matches your report.js T object exactly ──────────────────
 const T = {

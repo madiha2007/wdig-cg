@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { TrendingUp, Sparkles, ChevronDown, ChevronUp, Lightbulb, CheckCircle2 } from "lucide-react";
-import { auth } from "../../firebase";
+import { auth } from "../firebase";
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
 interface SkillItem {

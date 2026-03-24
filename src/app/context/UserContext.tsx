@@ -3,7 +3,7 @@
 import React, {
   createContext, useContext, useEffect, useState, useCallback,
 } from "react";
-import { auth } from "../../../firebase"; // auth only — no db import
+import { auth } from "../../firebase"; // auth only — no db import
 
 const API = "http://localhost:5000"; // your Node server
 

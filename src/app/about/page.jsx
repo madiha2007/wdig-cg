@@ -2,7 +2,7 @@
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
-import { auth } from "../../../firebase";
+import { auth } from "../../firebase";
 import { useEffect, useState, useRef } from "react";
 import {
   Lightbulb,
