@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../../firebase";
-import { signInWithGoogle } from "../../firebase";
+import { db } from "@firebase";
+import { signInWithGoogle } from "@firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebase";
+import { auth } from "@firebase";
 
 export default function LoginPage() {
   const router = useRouter();

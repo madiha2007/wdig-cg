@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { evaluateResponses } from "@/utils/evaluateResponses";
 import { useAssessment } from "@/app/context/AssessmentContext";
-import { auth } from "../../firebase";
+import { auth } from "@firebase";
 import ProfileGate from "../../components/ProfileGate";
 import { useUser } from "@/app/context/UserContext"; // add this
 
