@@ -93,10 +93,19 @@ export default function RegisterPage() {
       router.push("/dashboard");
 
     } catch (err) {
+      console.error("Registration error:", err.code, err.message);
       if (err.code === "auth/email-already-in-use") {
         setErrors({ email: "Email already registered" });
+      } else if (err.code === "auth/operation-not-allowed") {
+        setErrors({ general: "Email/password sign-up is not enabled. Please contact support." });
+      } else if (err.code === "auth/weak-password") {
+        setErrors({ password: "Password is too weak. Use at least 6 characters." });
+      } else if (err.code === "auth/invalid-email") {
+        setErrors({ email: "Invalid email address." });
+      } else if (err.code === "auth/network-request-failed") {
+        setErrors({ general: "Network error. Check your internet connection." });
       } else {
-        setErrors({ general: "Something went wrong. Try again." });
+        setErrors({ general: `Error: ${err.code || err.message}` });
       }
     } finally {
       setLoading(false);

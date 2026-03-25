@@ -1,8 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-
-
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getApps, getApp } from "firebase/app";
+import {
+  signInWithPopup,
+  getAuth,
+  GoogleAuthProvider,
+} from "firebase/auth";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -12,19 +15,16 @@ const firebaseConfig = {
   storageBucket: "wdig-d9431.firebasestorage.app",
   messagingSenderId: "1001960480504",
   appId: "1:1001960480504:web:7e51107fcddf3443ece50d",
-  measurementId: "G-MS5ZFVXCWL"
+  measurementId: "G-MS5ZFVXCWL",
 };
 
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-const app = initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const auth = getAuth(app);
 
-// export const googleProvider = new GoogleAuthProvider();
-
-
-export const signInWithGoogle = () => {
-  const googleProvider = new GoogleAuthProvider();
-  return signInWithPopup(auth, googleProvider);
+export const signInWithGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+  return result;
 };

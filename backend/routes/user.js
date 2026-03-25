@@ -42,9 +42,9 @@ router.post("/sync", async (req, res) => {
 // Returns: user row + profile row + latest prediction + report skills
 router.get("/:firebase_uid/full", async (req, res) => {
   const { firebase_uid } = req.params;
+
   try {
     const [userRes, profileRes, predRes, sessionRes] = await Promise.all([
-      
       pool.query(
         `SELECT email, display_name, age_group, location, created_at
          FROM users WHERE firebase_uid = $1`,
@@ -73,18 +73,28 @@ router.get("/:firebase_uid/full", async (req, res) => {
         [firebase_uid]
       ),
     ]);
-    // In backend/routes/user.js, temporarily add after the Promise.all:
-console.log("prediction row:", JSON.stringify(predRes.rows[0], null, 2));
 
-    res.json({
-      user:        userRes.rows[0]    || null,
-      profile:     profileRes.rows[0] || null,
-      prediction:  predRes.rows[0]    || null,
-      tests_taken: parseInt(sessionRes.rows[0].count),
+    // ✅ SAFE processing BEFORE sending response
+    const user = userRes.rows[0] || null;
+    const profile = profileRes.rows[0] || null;
+    const prediction = predRes.rows[0] || null;
+    const tests_taken = parseInt(sessionRes.rows[0]?.count || 0);
+
+    // ✅ SEND ONLY ONCE
+    return res.json({
+      user,
+      profile,
+      prediction,
+      tests_taken,
     });
+
   } catch (err) {
-    console.error("[user/full]", err.message);
-    res.status(500).json({ error: "Failed to fetch user data" });
+    console.error("[user/full]", err);
+
+    // ✅ prevent double send
+    if (!res.headersSent) {
+      return res.status(500).json({ error: "Failed to fetch user data" });
+    }
   }
 });
 

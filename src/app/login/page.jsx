@@ -9,6 +9,7 @@ import { db } from "../../../firebase";
 import { signInWithGoogle } from "../../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../firebase";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,20 +35,22 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const result = await signInWithEmailAndPassword(auth, form.email.trim(), form.password);
+      const result = await signInWithEmailAndPassword(
+        auth,
+        form.email.trim(),
+        form.password
+      );
+
       const user = result.user;
 
-      // ✅ Use sessionStorage (clears on tab/browser close)
       sessionStorage.setItem("user", JSON.stringify({
         email: user.email,
         name: user.displayName,
         photo: user.photoURL,
       }));
 
-      // Save UID for report page
       sessionStorage.setItem("wdig_uid", user.uid);
 
-      // ✅ Notify Navbar that user logged in
       window.dispatchEvent(new Event("sessionUpdated"));
 
       router.push("/dashboard");
@@ -104,22 +107,20 @@ export default function LoginPage() {
             {/* Google Login */}
             <button
               onClick={async () => {
-                if (loading) return;
                 setLoading(true);
                 try {
                   const result = await signInWithGoogle();
                   const user = result.user;
 
-                  // ✅ Use sessionStorage (clears on tab/browser close)
                   sessionStorage.setItem("user", JSON.stringify({
                     email: user.email,
                     name: user.displayName,
                     photo: user.photoURL,
                   }));
-
                   sessionStorage.setItem("wdig_uid", user.uid);
 
-                  // Save to Firestore
+                  // Firestore save
+                  console.log("db value:", db); // should NOT be undefined
                   const ref = doc(db, "users", user.uid);
                   const snap = await getDoc(ref);
                   if (!snap.exists()) {
@@ -132,11 +133,8 @@ export default function LoginPage() {
                     });
                   }
 
-                  // ✅ Notify Navbar that user logged in
                   window.dispatchEvent(new Event("sessionUpdated"));
-
                   router.push("/dashboard");
-
                 } catch (error) {
                   if (error.code !== "auth/cancelled-popup-request" &&
                     error.code !== "auth/popup-closed-by-user") {

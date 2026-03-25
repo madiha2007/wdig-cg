@@ -59,10 +59,10 @@ export async function GET(request) {
             fetch(`${ONET_BASE}/mnm/careers/${code}/education`, { headers: hdrs }),
           ]);
 
-          const overview   = overviewRes.ok  ? await overviewRes.json() : {};
-          const outlook    = outlookRes.ok   ? await outlookRes.json()  : {};
-          const skillsData = skillsRes.ok    ? await skillsRes.json()   : {};
-          const eduData    = educationRes.ok ? await educationRes.json(): {};
+          const overview = overviewRes.ok ? await overviewRes.json() : {};
+          const outlook = outlookRes.ok ? await outlookRes.json() : {};
+          const skillsData = skillsRes.ok ? await skillsRes.json() : {};
+          const eduData = educationRes.ok ? await educationRes.json() : {};
 
           const skills = (skillsData.element || []).slice(0, 5).map((s) => s.name);
           const education = eduData.education?.level_required?.category?.[0]?.name || "Bachelor's Degree";

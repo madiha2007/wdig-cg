@@ -19,9 +19,8 @@ app.use(express.json());
 
 // ← ADD THIS
 app.use((req, res, next) => {
-  res.send("Backend running");
   console.log(`→ ${req.method} ${req.path}`);
-  next();
+  next(); // ✅ ONLY log, do NOT send response
 });
 
 app.use("/institutes", institutesRouter);

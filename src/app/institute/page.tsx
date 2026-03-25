@@ -1,577 +1,85 @@
-// "use client";
-
-// import { useState, useEffect } from "react";
-// import Image from "next/image";
-
-// const TYPE_IMAGES = {
-//   "Engineering":    "https://images.unsplash.com/photo-1581092160562-40aa08e12b17?w=600&auto=format&fit=crop",
-//   "University":     "https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?w=600&auto=format&fit=crop",
-//   "Medical":        "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=600&auto=format&fit=crop",
-//   "Law":            "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop",
-//   "Management":     "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&auto=format&fit=crop",
-//   "Arts & Science": "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&auto=format&fit=crop",
-//   "Institute":      "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=600&auto=format&fit=crop",
-// };
-
-// const TYPE_COLORS = {
-//   "Engineering":    { bg: "bg-blue-50",   text: "text-blue-700",   dot: "bg-blue-500" },
-//   "University":     { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-500" },
-//   "Medical":        { bg: "bg-red-50",    text: "text-red-700",    dot: "bg-red-500" },
-//   "Law":            { bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-500" },
-//   "Management":     { bg: "bg-emerald-50",text: "text-emerald-700",dot: "bg-emerald-500" },
-//   "Arts & Science": { bg: "bg-pink-50",   text: "text-pink-700",   dot: "bg-pink-500" },
-//   "Institute":      { bg: "bg-gray-50",   text: "text-gray-700",   dot: "bg-gray-500" },
-// };
-
-// const F = { fontFamily: "'Nunito', sans-serif" };
-
-// function getDefaultImage(type) {
-//   return TYPE_IMAGES[type] || TYPE_IMAGES["Institute"];
-// }
-
-// function getTypeColor(type) {
-//   return TYPE_COLORS[type] || TYPE_COLORS["Institute"];
-// }
-
-// function StarRating({ rating }) {
-//   return (
-//     <div className="flex items-center gap-1">
-//       {[1, 2, 3, 4, 5].map((star) => (
-//         <svg key={star} className={`w-3.5 h-3.5 ${star <= Math.round(rating) ? "text-amber-400" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20">
-//           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-//         </svg>
-//       ))}
-//       <span className="text-xs text-gray-500 ml-1">{rating}</span>
-//     </div>
-//   );
-// }
-
-// export default function Institutes() {
-//   const [institutes, setInstitutes] = useState([]);
-//   const [search, setSearch] = useState("");
-//   const [type, setType] = useState("");
-//   const [cityFilter, setCityFilter] = useState("");
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [selectedInstitute, setSelectedInstitute] = useState(null);
-//   const [detailLoading, setDetailLoading] = useState(false);
-//   const [hoveredId, setHoveredId] = useState(null);
-
-//   useEffect(() => {
-//     fetch("/api/institutes")
-//       .then((res) => res.json())
-//       .then((data) => {
-//         const list = Array.isArray(data) ? data : data.institutes || data.data || [];
-//         setInstitutes(list);
-//         setLoading(false);
-//       })
-//       .catch((err) => {
-//         setError(err.message);
-//         setLoading(false);
-//       });
-//   }, []);
-
-//   async function handleViewInstitute(id) {
-//     setDetailLoading(true);
-//     setSelectedInstitute(null);
-//     try {
-//       const res = await fetch(`/api/institutes/${id}/details`);
-//       const data = await res.json();
-//       setSelectedInstitute(data);
-//     } catch (err) {
-//       console.error("Failed to load institute details:", err);
-//     } finally {
-//       setDetailLoading(false);
-//     }
-//   }
-
-//   function closeModal() {
-//     setSelectedInstitute(null);
-//     setDetailLoading(false);
-//   }
-
-//   const cities = [...new Set(institutes.map((i) => i.city).filter(Boolean))].sort();
-//   const types = [...new Set(institutes.map((i) => i.type).filter(Boolean))].sort();
-
-//   const filteredInstitutes = institutes.filter((inst) =>
-//     inst.name?.toLowerCase().includes(search.toLowerCase()) &&
-//     (type === "" || inst.type === type) &&
-//     (cityFilter === "" || inst.city === cityFilter)
-//   );
-
-//   if (loading) {
-//     return (
-//       <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50">
-//         <div className="flex gap-2">
-//           {[0,1,2].map(i => (
-//             <div key={i} className="w-3 h-3 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-//           ))}
-//         </div>
-//         <p className="text-gray-400 text-sm tracking-widest uppercase">Loading Institutes</p>
-//       </div>
-//     );
-//   }
-
-//   if (error) {
-//     return <p className="text-center mt-10 text-red-500">{error}</p>;
-//   }
-
-//   return (
-//     <div style={{ ...F, color: "#1e2a3a", background: "#f7f9fc", minHeight: "100vh" }}>
- 
-//       {/* ── GLOBAL STYLES ── */}
-//       <style>{`
-//         @keyframes pulse-dot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
-//         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-//         @keyframes shimmer {
-//           0%{left:-60%;opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{left:120%;opacity:0}
-//         }
-//         @keyframes spin-slow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-//       `}</style>
- 
-//       {/* ════════════════════════════════
-//           HERO
-//       ════════════════════════════════ */}
-//       <section style={{
-//         background: "#ffffff",
-//         padding: "64px 24px 56px",
-//         textAlign: "center",
-//         position: "relative",
-//         overflow: "hidden",
-//         borderBottom: "1px solid #e8edf3",
-//       }}>
-//         {/* Orbs */}
-//         <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 70%)", top: -200, right: -80, pointerEvents: "none" }} />
-//         <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%)", bottom: -120, left: -60, pointerEvents: "none" }} />
-//         <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", border: "1.5px dashed rgba(139,92,246,0.15)", top: "50%", right: "8%", transform: "translateY(-50%)", animation: "spin-slow 30s linear infinite", pointerEvents: "none" }} />
- 
-//         <div style={{ position: "relative", zIndex: 1, maxWidth: 600, margin: "0 auto" }}>
-//           {/* Badge */}
-//           <div style={{
-//             display: "inline-flex", alignItems: "center", gap: 8,
-//             background: "rgba(219,234,254,0.7)", backdropFilter: "blur(8px)",
-//             color: "#1e5fa8", borderRadius: 999, padding: "6px 16px",
-//             fontSize: 11, fontWeight: 800, letterSpacing: "0.1em",
-//             textTransform: "uppercase", marginBottom: 22,
-//             border: "1px solid rgba(59,130,246,0.2)",
-//             boxShadow: "0 2px 12px rgba(59,130,246,0.1)",
-//           }}>
-//             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse-dot 1.5s ease infinite" }} />
-//             Maharashtra · {institutes.length}+ Institutes
-//           </div>
- 
-//           {/* Heading */}
-//           <h1 style={{
-//             fontFamily: "'Lora', serif",
-//             fontSize: "clamp(34px,5vw,54px)",
-//             fontWeight: 600, color: "#1e2a3a",
-//             lineHeight: 1.15, marginBottom: 16,
-//           }}>
-//             Find Your{" "}
-//             <span className="bg-gradient-to-r from-purple-500 to-pink-500" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-//               Dream College
-//             </span>
-//           </h1>
- 
-//           <p style={{ fontSize: 16, color: "#3d4f63", lineHeight: 1.8, maxWidth: 440, margin: "0 auto" }}>
-//             Explore top institutes with fees, placements, courses &amp; more — all in one place.
-//           </p>
-//         </div>
-//       </section>
- 
-//       {/* ════════════════════════════════
-//           STICKY FILTER BAR
-//       ════════════════════════════════ */}
-//       <div style={{
-//         position: "sticky", top: 0, zIndex: 30,
-//         background: "rgba(255,255,255,0.92)",
-//         backdropFilter: "blur(12px)",
-//         borderBottom: "1px solid #e8edf3",
-//         boxShadow: "0 2px 16px rgba(30,42,58,0.06)",
-//         padding: "14px 24px",
-//       }}>
-//         <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
- 
-//           {/* Search */}
-//           <div style={{ position: "relative", flex: "1 1 200px" }}>
-//             <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#7a8fa6", pointerEvents: "none" }} width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-//             </svg>
-//             <input
-//               type="text"
-//               placeholder="Search institutes..."
-//               value={search}
-//               onChange={(e) => setSearch(e.target.value)}
-//               style={{
-//                 width: "100%", padding: "10px 14px 10px 38px",
-//                 border: "1.5px solid #e2e8f0", borderRadius: 12,
-//                 fontSize: 13, fontFamily: "'Nunito', sans-serif",
-//                 color: "#1e2a3a", outline: "none",
-//                 transition: "border .2s, box-shadow .2s",
-//                 boxSizing: "border-box",
-//               }}
-//               onFocus={(e) => { e.target.style.borderColor = "#7c3aed"; e.target.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.1)"; }}
-//               onBlur={(e) => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
-//             />
-//           </div>
- 
-//           {/* Type select */}
-//           <select
-//             value={type}
-//             onChange={(e) => setType(e.target.value)}
-//             style={{ padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 12, fontSize: 13, fontFamily: "'Nunito', sans-serif", color: "#1e2a3a", background: "#fff", outline: "none", cursor: "pointer" }}
-//           >
-//             <option value="">All Types</option>
-//             {types.map((t) => <option key={t} value={t}>{t}</option>)}
-//           </select>
- 
-//           {/* City select */}
-//           <select
-//             value={cityFilter}
-//             onChange={(e) => setCityFilter(e.target.value)}
-//             style={{ padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 12, fontSize: 13, fontFamily: "'Nunito', sans-serif", color: "#1e2a3a", background: "#fff", outline: "none", cursor: "pointer" }}
-//           >
-//             <option value="">All Cities</option>
-//             {cities.map((c) => <option key={c} value={c}>{c}</option>)}
-//           </select>
- 
-//           {/* Clear */}
-//           {(search || type || cityFilter) && (
-//             <button
-//               onClick={() => { setSearch(""); setType(""); setCityFilter(""); }}
-//               style={{ padding: "9px 14px", fontSize: 12, fontWeight: 700, color: "#7a8fa6", border: "1.5px solid #e2e8f0", borderRadius: 12, background: "#fff", cursor: "pointer", fontFamily: "'Nunito', sans-serif", display: "flex", alignItems: "center", gap: 6, transition: "all .2s" }}
-//               onMouseEnter={(e) => { e.currentTarget.style.color = "#1e2a3a"; e.currentTarget.style.background = "#f1f5f9"; }}
-//               onMouseLeave={(e) => { e.currentTarget.style.color = "#7a8fa6"; e.currentTarget.style.background = "#fff"; }}
-//             >
-//               <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-//               Clear
-//             </button>
-//           )}
- 
-//           <span style={{ marginLeft: "auto", fontSize: 12, color: "#7a8fa6", fontWeight: 700 }}>
-//             {filteredInstitutes.length} results
-//           </span>
-//         </div>
-//       </div>
-
-//       {/* Cards Grid */}
-//       <section className="px-4 md:px-20 py-10">
-//         {filteredInstitutes.length === 0 ? (
-//           <div className="text-center py-20">
-//             <p className="text-5xl mb-4">🔍</p>
-//             <p className="text-gray-500 text-lg font-medium">No institutes found</p>
-//             <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
-//           </div>
-//         ) : (
-//           <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-4">
-//             {filteredInstitutes.map((inst) => {
-//               const tc = getTypeColor(inst.type);
-//               return (
-//                 <div
-//                   key={inst.id}
-//                   className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group"
-//                   onMouseEnter={() => setHoveredId(inst.id)}
-//                   onMouseLeave={() => setHoveredId(null)}
-//                 >
-//                   {/* Image */}
-//                   <div className="relative h-48 overflow-hidden">
-//                     <Image
-//                       src={inst.image || getDefaultImage(inst.type)}
-//                       alt={`${inst.name} campus`}
-//                       fill
-//                       style={{ objectFit: "cover" }}
-//                       unoptimized
-//                       className="group-hover:scale-105 transition-transform duration-500"
-//                     />
-//                     {/* Gradient overlay */}
-//                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-//                     {/* Type badge */}
-//                     <span className={`absolute top-3 left-3 ${tc.bg} ${tc.text} text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5`}>
-//                       <span className={`w-1.5 h-1.5 rounded-full ${tc.dot}`} />
-//                       {inst.type}
-//                     </span>
-
-//                     {/* Rating on image */}
-//                     {inst.rating && (
-//                       <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm rounded-lg px-2 py-1">
-//                         <StarRating rating={inst.rating} />
-//                       </div>
-//                     )}
-
-//                     {/* City on image */}
-//                     <p className="absolute bottom-3 left-3 text-white text-xs font-medium flex items-center gap-1">
-//                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-//                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-//                       </svg>
-//                       {inst.city}
-//                     </p>
-//                   </div>
-
-//                   {/* Content */}
-//                   <div className="p-5">
-//                     <h2 className="font-bold text-gray-900 text-base leading-snug mb-3 line-clamp-2">{inst.name}</h2>
-
-//                     {/* Stats row */}
-//                     <div className="grid grid-cols-2 gap-2 mb-4">
-//                       {inst.fees && (
-//                         <div className="bg-gray-50 rounded-lg p-2">
-//                           <p className="text-gray-400 text-[10px] uppercase tracking-wider font-semibold">Fees</p>
-//                           <p className="text-gray-800 text-xs font-bold mt-0.5">{inst.fees}</p>
-//                         </div>
-//                       )}
-//                       {inst.placement && (
-//                         <div className="bg-gray-50 rounded-lg p-2">
-//                           <p className="text-gray-400 text-[10px] uppercase tracking-wider font-semibold">Avg Package</p>
-//                           <p className="text-gray-800 text-xs font-bold mt-0.5">{inst.placement}</p>
-//                         </div>
-//                       )}
-//                     </div>
-
-//                     {/* Courses */}
-//                     {Array.isArray(inst.courses) && inst.courses.length > 0 && (
-//                       <div className="flex flex-wrap gap-1 mb-4">
-//                         {inst.courses.slice(0, 3).map((c) => (
-//                           <span key={c} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{c}</span>
-//                         ))}
-//                         {inst.courses.length > 3 && (
-//                           <span className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">+{inst.courses.length - 3}</span>
-//                         )}
-//                       </div>
-//                     )}
-
-//                     {/* CTA Button */}
-//                     <button
-//                       onClick={() => inst.website ? window.open(inst.website, "_blank") : handleViewInstitute(inst.id)}
-//                       className="w-full py-2.5 rounded-xl text-sm font-bold transition-all duration-200 bg-slate-900 text-white hover:bg-sky-600 flex items-center justify-center gap-2 group/btn"
-//                     >
-//                       Visit Website
-//                       <svg className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-//                       </svg>
-//                     </button>
-//                   </div>
-//                 </div>
-//               );
-//             })}
-//           </div>
-//         )}
-//       </section>
-
-//       {/* Detail Modal */}
-//       {(detailLoading || selectedInstitute) && (
-//         <div
-//           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-//           onClick={closeModal}
-//         >
-//           <div
-//             className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg relative max-h-[92vh] overflow-y-auto"
-//             onClick={(e) => e.stopPropagation()}
-//           >
-//             {/* Drag handle on mobile */}
-//             <div className="flex justify-center pt-3 pb-1 sm:hidden">
-//               <div className="w-10 h-1 bg-gray-200 rounded-full" />
-//             </div>
-
-//             {/* Close */}
-//             <button
-//               onClick={closeModal}
-//               className="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center z-10 transition"
-//             >
-//               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-//               </svg>
-//             </button>
-
-//             {detailLoading ? (
-//               <div className="flex flex-col items-center justify-center py-20 gap-4">
-//                 <div className="flex gap-2">
-//                   {[0,1,2].map(i => (
-//                     <div key={i} className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-//                   ))}
-//                 </div>
-//                 <p className="text-gray-400 text-sm">Fetching details...</p>
-//               </div>
-//             ) : selectedInstitute && (
-//               <div>
-//                 {/* Modal image */}
-//                 <div className="relative h-52 rounded-t-3xl sm:rounded-t-2xl overflow-hidden">
-//                   <Image
-//                     src={selectedInstitute.image || getDefaultImage(selectedInstitute.type)}
-//                     alt={`${selectedInstitute.name} campus`}
-//                     fill
-//                     style={{ objectFit: "cover" }}
-//                     unoptimized
-//                   />
-//                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-//                   <div className="absolute bottom-4 left-5 right-14">
-//                     <span className={`${getTypeColor(selectedInstitute.type).bg} ${getTypeColor(selectedInstitute.type).text} text-xs font-bold px-2.5 py-1 rounded-full inline-block mb-2`}>
-//                       {selectedInstitute.type}
-//                     </span>
-//                     <h2 className="text-white font-black text-xl leading-tight">{selectedInstitute.name}</h2>
-//                     <p className="text-white/70 text-sm mt-1 flex items-center gap-1">
-//                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-//                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-//                       </svg>
-//                       {selectedInstitute.city}, {selectedInstitute.state}
-//                     </p>
-//                   </div>
-//                 </div>
-
-//                 <div className="p-5">
-//                   {/* Rating */}
-//                   {selectedInstitute.rating && (
-//                     <div className="mb-4">
-//                       <StarRating rating={selectedInstitute.rating} />
-//                     </div>
-//                   )}
-
-//                   {/* Stats grid */}
-//                   <div className="grid grid-cols-2 gap-3 mb-5">
-//                     {selectedInstitute.fees && (
-//                       <div className="bg-sky-50 border border-sky-100 rounded-xl p-3">
-//                         <p className="text-sky-500 text-[10px] uppercase tracking-wider font-bold">Annual Fees</p>
-//                         <p className="text-gray-900 font-bold text-sm mt-1">{selectedInstitute.fees}</p>
-//                       </div>
-//                     )}
-//                     {selectedInstitute.placement && (
-//                       <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
-//                         <p className="text-emerald-500 text-[10px] uppercase tracking-wider font-bold">Avg Package</p>
-//                         <p className="text-gray-900 font-bold text-sm mt-1">{selectedInstitute.placement}</p>
-//                       </div>
-//                     )}
-//                     {selectedInstitute.highest_package && (
-//                       <div className="bg-violet-50 border border-violet-100 rounded-xl p-3">
-//                         <p className="text-violet-500 text-[10px] uppercase tracking-wider font-bold">Highest Package</p>
-//                         <p className="text-gray-900 font-bold text-sm mt-1">{selectedInstitute.highest_package}</p>
-//                       </div>
-//                     )}
-//                     {selectedInstitute.established && (
-//                       <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
-//                         <p className="text-amber-500 text-[10px] uppercase tracking-wider font-bold">Established</p>
-//                         <p className="text-gray-900 font-bold text-sm mt-1">{selectedInstitute.established}</p>
-//                       </div>
-//                     )}
-//                   </div>
-
-//                   {/* Info list */}
-//                   <div className="space-y-3 text-sm mb-5">
-//                     {selectedInstitute.university && (
-//                       <div className="flex items-start gap-3 py-2 border-b border-gray-100">
-//                         <span className="text-gray-400 min-w-[90px] text-xs uppercase tracking-wide font-semibold pt-0.5">University</span>
-//                         <span className="text-gray-800 font-medium">{selectedInstitute.university}</span>
-//                       </div>
-//                     )}
-//                     {selectedInstitute.college_type && (
-//                       <div className="flex items-start gap-3 py-2 border-b border-gray-100">
-//                         <span className="text-gray-400 min-w-[90px] text-xs uppercase tracking-wide font-semibold pt-0.5">Type</span>
-//                         <span className="text-gray-800 font-medium">{selectedInstitute.college_type}</span>
-//                       </div>
-//                     )}
-//                     {selectedInstitute.cutoff && (
-//                       <div className="flex items-start gap-3 py-2 border-b border-gray-100">
-//                         <span className="text-gray-400 min-w-[90px] text-xs uppercase tracking-wide font-semibold pt-0.5">Cutoff</span>
-//                         <span className="text-gray-800 font-medium">{selectedInstitute.cutoff}</span>
-//                       </div>
-//                     )}
-//                     {Array.isArray(selectedInstitute.courses) && selectedInstitute.courses.length > 0 && (
-//                       <div className="flex items-start gap-3 py-2">
-//                         <span className="text-gray-400 min-w-[90px] text-xs uppercase tracking-wide font-semibold pt-0.5">Courses</span>
-//                         <div className="flex flex-wrap gap-1">
-//                           {selectedInstitute.courses.map((c) => (
-//                             <span key={c} className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-medium">{c}</span>
-//                           ))}
-//                         </div>
-//                       </div>
-//                     )}
-//                   </div>
-
-//                   {/* Website Button */}
-//                   {selectedInstitute.website && (
-//                     <a
-//                       href={selectedInstitute.website}
-//                       target="_blank"
-//                       rel="noopener noreferrer"
-//                       className="flex items-center justify-center gap-2 w-full py-3 bg-slate-900 hover:bg-sky-600 text-white font-bold rounded-xl transition-colors text-sm"
-//                     >
-//                       Visit Official Website
-//                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-//                       </svg>
-//                     </a>
-//                   )}
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
 "use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useUser } from "../context/UserContext";   // adjust path
-import { Sparkles, User, ArrowRight } from "lucide-react";
+import { useUser } from "../context/UserContext";
+import { Sparkles } from "lucide-react";
 
 /* ─── Types / static data ────────────────────────────────────── */
 const TYPE_IMAGES: Record<string, string> = {
-  Engineering:    "https://images.unsplash.com/photo-1581092160562-40aa08e12b17?w=600&auto=format&fit=crop",
-  University:     "https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?w=600&auto=format&fit=crop",
-  Medical:        "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=600&auto=format&fit=crop",
-  Law:            "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop",
-  Management:     "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&auto=format&fit=crop",
-  "Arts & Science":"https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&auto=format&fit=crop",
-  Institute:      "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=600&auto=format&fit=crop",
+  Engineering: "https://images.unsplash.com/photo-1581092160562-40aa08e12b17?w=600&auto=format&fit=crop",
+  University: "https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?w=600&auto=format&fit=crop",
+  Medical: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=600&auto=format&fit=crop",
+  Law: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop",
+  Management: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&auto=format&fit=crop",
+  "Arts & Science": "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&auto=format&fit=crop",
+  Institute: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=600&auto=format&fit=crop",
 };
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  Engineering:    { bg:"bg-blue-50",   text:"text-blue-700",   dot:"bg-blue-500" },
-  University:     { bg:"bg-violet-50", text:"text-violet-700", dot:"bg-violet-500" },
-  Medical:        { bg:"bg-red-50",    text:"text-red-700",    dot:"bg-red-500" },
-  Law:            { bg:"bg-amber-50",  text:"text-amber-700",  dot:"bg-amber-500" },
-  Management:     { bg:"bg-emerald-50",text:"text-emerald-700",dot:"bg-emerald-500" },
-  "Arts & Science":{ bg:"bg-pink-50",  text:"text-pink-700",   dot:"bg-pink-500" },
-  Institute:      { bg:"bg-gray-50",   text:"text-gray-700",   dot:"bg-gray-500" },
+  Engineering: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
+  University: { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-500" },
+  Medical: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
+  Pharmacy: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-500" },
+  Law: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+  Management: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
+  "Hotel Management": { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500" },
+  "Arts & Science": { bg: "bg-pink-50", text: "text-pink-700", dot: "bg-pink-500" },
+  "Arts/Science": { bg: "bg-pink-50", text: "text-pink-700", dot: "bg-pink-500" },
+  "Arts/Commerce/Science": { bg: "bg-fuchsia-50", text: "text-fuchsia-700", dot: "bg-fuchsia-500" },
+  "Arts/Science/Commerce": { bg: "bg-fuchsia-50", text: "text-fuchsia-700", dot: "bg-fuchsia-500" },
+  Science: { bg: "bg-cyan-50", text: "text-cyan-700", dot: "bg-cyan-500" },
+  Commerce: { bg: "bg-teal-50", text: "text-teal-700", dot: "bg-teal-500" },
+  "Commerce/Science": { bg: "bg-teal-50", text: "text-teal-700", dot: "bg-teal-500" },
+  "Science/Commerce": { bg: "bg-teal-50", text: "text-teal-700", dot: "bg-teal-500" },
+  Polytechnic: { bg: "bg-slate-50", text: "text-slate-700", dot: "bg-slate-500" },
+  "Home Science": { bg: "bg-lime-50", text: "text-lime-700", dot: "bg-lime-500" },
+  Institute: { bg: "bg-gray-50", text: "text-gray-700", dot: "bg-gray-500" },
 };
 
 /**
- * Map from career domain / name fragment → institute type(s) that best match.
- * We use this to highlight colleges for a user's recommended careers.
+ * Cleans raw DB type strings into human-readable labels for the dropdown.
+ * e.g. "Arts/Commerce/Science" → "Arts, Commerce & Science"
  */
+function cleanTypeLabel(raw: string): string {
+  const map: Record<string, string> = {
+    "Arts/Commerce/Science": "Arts, Commerce & Science",
+    "Arts/Science/Commerce": "Arts, Science & Commerce",
+    "Arts/Science": "Arts & Science",
+    "Commerce/Science": "Commerce & Science",
+    "Science/Commerce": "Science & Commerce",
+    "Home Science": "Home Science",
+    "Hotel Management": "Hotel Management",
+  };
+  return map[raw] ?? raw;
+}
+
 const CAREER_TO_INST_TYPE: Record<string, string[]> = {
-  // tech / engineering
-  software:       ["Engineering","University"],
-  developer:      ["Engineering","University"],
-  engineer:       ["Engineering"],
-  data:           ["Engineering","University"],
-  ai:             ["Engineering","University"],
-  machine:        ["Engineering","University"],
-  cyber:          ["Engineering","University"],
-  // medicine / health
-  doctor:         ["Medical"],
-  medicine:       ["Medical"],
-  nurse:          ["Medical"],
-  health:         ["Medical","University"],
-  physio:         ["Medical"],
-  pharmacist:     ["Medical"],
-  // law
-  lawyer:         ["Law","University"],
-  legal:          ["Law"],
-  // management / business
-  manager:        ["Management","University"],
-  business:       ["Management","University"],
-  finance:        ["Management","University"],
-  accountant:     ["Management","University"],
-  marketing:      ["Management","University"],
-  mba:            ["Management"],
-  // arts / design / education
-  design:         ["Arts & Science","University"],
-  artist:         ["Arts & Science"],
-  teacher:        ["University","Arts & Science"],
-  education:      ["University","Arts & Science"],
+  software: ["Engineering", "University"],
+  developer: ["Engineering", "University"],
+  engineer: ["Engineering"],
+  data: ["Engineering", "University"],
+  ai: ["Engineering", "University"],
+  machine: ["Engineering", "University"],
+  cyber: ["Engineering", "University"],
+  doctor: ["Medical"],
+  medicine: ["Medical"],
+  nurse: ["Medical"],
+  health: ["Medical", "University"],
+  physio: ["Medical"],
+  pharmacist: ["Pharmacy", "Medical"],
+  lawyer: ["Law", "University"],
+  legal: ["Law"],
+  manager: ["Management", "University"],
+  business: ["Management", "University"],
+  finance: ["Management", "University"],
+  accountant: ["Management", "University"],
+  marketing: ["Management", "University"],
+  mba: ["Management"],
+  design: ["Arts & Science", "University"],
+  artist: ["Arts & Science"],
+  teacher: ["University", "Arts & Science"],
+  education: ["University", "Arts & Science"],
 };
 
 function getRelevantTypes(careers: string[]): Set<string> {
@@ -586,14 +94,16 @@ function getRelevantTypes(careers: string[]): Set<string> {
 }
 
 function getDefaultImage(type: string) { return TYPE_IMAGES[type] || TYPE_IMAGES.Institute; }
-function getTypeColor(type: string)    { return TYPE_COLORS[type] || TYPE_COLORS.Institute; }
+function getTypeColor(type: string) { return TYPE_COLORS[type] || TYPE_COLORS.Institute; }
+
+const PAGE_SIZE = 8;
 const F = { fontFamily: "'Nunito', sans-serif" };
 
-/* ─── Star Rating ────────────────────────────────────────────── */
+/* ─── Star Rating ─────────────────────────────────────────────── */
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-1">
-      {[1,2,3,4,5].map(star => (
+      {[1, 2, 3, 4, 5].map(star => (
         <svg key={star} className={`w-3.5 h-3.5 ${star <= Math.round(rating) ? "text-amber-400" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
@@ -603,30 +113,28 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-/* ─── College Card ───────────────────────────────────────────── */
+/* ─── College Card ────────────────────────────────────────────── */
 function CollegeCard({ inst, highlighted, onView }: { inst: any; highlighted: boolean; onView: (id: string) => void }) {
   const tc = getTypeColor(inst.type);
   return (
-    <div
-      className={`bg-white rounded-2xl overflow-hidden border group transition-all duration-300 ${highlighted ? "border-indigo-200 shadow-lg shadow-indigo-50 ring-1 ring-indigo-200" : "border-gray-100 shadow-sm hover:shadow-xl"}`}
-      style={{ position: "relative" }}
-    >
-      {/* "Recommended" banner for highlighted */}
-      {highlighted && (
-        <div style={{ position:"absolute", top:12, zIndex:10, left:0, right:0, display:"flex", justifyContent:"center", pointerEvents:"none" }}>
-          <span style={{ display:"inline-flex", alignItems:"center", gap:5, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", color:"#fff", borderRadius:99, padding:"4px 14px", fontSize:11, fontWeight:700, boxShadow:"0 2px 10px rgba(99,102,241,0.4)" }}>
-            <Sparkles size={10} /> Recommended For You
-          </span>
-        </div>
-      )}
-
-      <div className="relative h-48 overflow-hidden">
-        <Image src={inst.image || getDefaultImage(inst.type)} alt={`${inst.name} campus`} fill style={{ objectFit:"cover" }} unoptimized className="group-hover:scale-105 transition-transform duration-500" />
+    <div className={`bg-white rounded-2xl overflow-hidden border group transition-all duration-300 ${highlighted ? "border-indigo-200 shadow-lg shadow-indigo-50 ring-1 ring-indigo-200" : "border-gray-100 shadow-sm hover:shadow-xl"}`}>
+      <div className="relative h-36 sm:h-48 overflow-hidden">
+        <Image src={inst.image || getDefaultImage(inst.type)} alt={`${inst.name} campus`} fill style={{ objectFit: "cover" }} unoptimized className="group-hover:scale-105 transition-transform duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        <span className={`absolute top-3 left-3 ${tc.bg} ${tc.text} text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${tc.dot}`} />
-          {inst.type}
-        </span>
+
+        {/* Stacked badges — no overlap */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          <span className={`${tc.bg} ${tc.text} text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full flex items-center gap-1 sm:gap-1.5 w-fit`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${tc.dot}`} />
+            {cleanTypeLabel(inst.type)}
+          </span>
+          {highlighted && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", borderRadius: 99, padding: "3px 10px", fontSize: 10, fontWeight: 700, boxShadow: "0 2px 10px rgba(99,102,241,0.4)", width: "fit-content" }}>
+              <Sparkles size={9} /> Recommended
+            </span>
+          )}
+        </div>
+
         {inst.rating && (
           <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm rounded-lg px-2 py-1">
             <StarRating rating={inst.rating} />
@@ -638,36 +146,36 @@ function CollegeCard({ inst, highlighted, onView }: { inst: any; highlighted: bo
         </p>
       </div>
 
-      <div className="p-5">
-        <h2 className="font-bold text-gray-900 text-base leading-snug mb-3 line-clamp-2">{inst.name}</h2>
-        <div className="grid grid-cols-2 gap-2 mb-4">
+      <div className="p-3 sm:p-5">
+        <h2 className="font-bold text-gray-900 text-sm sm:text-base leading-snug mb-2 sm:mb-3 line-clamp-2">{inst.name}</h2>
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
           {inst.fees && (
-            <div className="bg-gray-50 rounded-lg p-2">
-              <p className="text-gray-400 text-[10px] uppercase tracking-wider font-semibold">Fees</p>
-              <p className="text-gray-800 text-xs font-bold mt-0.5">{inst.fees}</p>
+            <div className="bg-gray-50 rounded-lg p-1.5 sm:p-2">
+              <p className="text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold">Fees</p>
+              <p className="text-gray-800 text-[11px] sm:text-xs font-bold mt-0.5">{inst.fees}</p>
             </div>
           )}
           {inst.placement && (
-            <div className="bg-gray-50 rounded-lg p-2">
-              <p className="text-gray-400 text-[10px] uppercase tracking-wider font-semibold">Avg Package</p>
-              <p className="text-gray-800 text-xs font-bold mt-0.5">{inst.placement}</p>
+            <div className="bg-gray-50 rounded-lg p-1.5 sm:p-2">
+              <p className="text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold">Avg Package</p>
+              <p className="text-gray-800 text-[11px] sm:text-xs font-bold mt-0.5">{inst.placement}</p>
             </div>
           )}
         </div>
         {Array.isArray(inst.courses) && inst.courses.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-4">
+          <div className="flex flex-wrap gap-1 mb-3 sm:mb-4">
             {inst.courses.slice(0, 3).map((c: string) => (
-              <span key={c} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">{c}</span>
+              <span key={c} className="text-[9px] sm:text-[10px] bg-gray-100 text-gray-600 px-1.5 sm:px-2 py-0.5 rounded-full font-medium">{c}</span>
             ))}
-            {inst.courses.length > 3 && <span className="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">+{inst.courses.length - 3}</span>}
+            {inst.courses.length > 3 && <span className="text-[9px] sm:text-[10px] bg-gray-100 text-gray-400 px-1.5 sm:px-2 py-0.5 rounded-full">+{inst.courses.length - 3}</span>}
           </div>
         )}
         <button
           onClick={() => inst.website ? window.open(inst.website, "_blank") : onView(inst.id)}
-          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 group/btn ${highlighted ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-slate-900 hover:bg-sky-600 text-white"}`}
+          className={`w-full py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 group/btn ${highlighted ? "bg-sky-600 hover:bg-sky-800 text-white" : "bg-slate-900 hover:bg-sky-600 text-white"}`}
         >
           Visit Website
-          <svg className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         </button>
@@ -676,19 +184,76 @@ function CollegeCard({ inst, highlighted, onView }: { inst: any; highlighted: bo
   );
 }
 
-/* ─── Main Component ─────────────────────────────────────────── */
+/* ─── View More Button ────────────────────────────────────────── */
+function ViewMoreButton({ shown, total, onToggle }: { shown: number; total: number; onToggle: () => void }) {
+  const remaining = total - shown;
+  return (
+    <div className="flex justify-center mt-6 sm:mt-8">
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 border-indigo-200 text-indigo-700 font-bold text-sm bg-white hover:bg-indigo-50 transition-all duration-200 shadow-sm hover:shadow-md"
+      >
+        {shown < total ? (
+          <>View {remaining} More <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg></>
+        ) : (
+          <>Show Less <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" /></svg></>
+        )}
+      </button>
+    </div>
+  );
+}
+
+/* ─── Styled Select ───────────────────────────────────────────── */
+function FilterSelect({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          appearance: "none",
+          WebkitAppearance: "none",
+          padding: "10px 36px 10px 14px",
+          border: "1.5px solid #e2e8f0",
+          borderRadius: 12,
+          fontSize: 13,
+          fontFamily: "'Nunito', sans-serif",
+          fontWeight: 600,
+          color: value ? "#1e2a3a" : "#7a8fa6",
+          background: "#fff",
+          outline: "none",
+          cursor: "pointer",
+          minWidth: 130,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          transition: "border-color 0.15s, box-shadow 0.15s",
+        }}
+        onFocus={e => { e.target.style.borderColor = "#7c3aed"; e.target.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.1)"; }}
+        onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
+      >
+        {children}
+      </select>
+      {/* Custom chevron */}
+      <svg style={{ position: "absolute", right: 10, pointerEvents: "none", color: "#94a3b8" }} width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  );
+}
+
+/* ─── Main Component ──────────────────────────────────────────── */
 export default function Institutes() {
   const { userData, topCareers, isAssessed } = useUser();
 
-  const [institutes, setInstitutes]         = useState<any[]>([]);
-  const [search, setSearch]                 = useState("");
-  const [type, setType]                     = useState("");
-  const [cityFilter, setCityFilter]         = useState("");
-  const [loading, setLoading]               = useState(true);
-  const [error, setError]                   = useState<string | null>(null);
+  const [institutes, setInstitutes] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedInstitute, setSelectedInstitute] = useState<any>(null);
-  const [detailLoading, setDetailLoading]   = useState(false);
-  const [hoveredId, setHoveredId]           = useState<string | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [recShown, setRecShown] = useState(PAGE_SIZE);
+  const [otherShown, setOtherShown] = useState(PAGE_SIZE);
 
   useEffect(() => {
     fetch("/api/institutes")
@@ -701,6 +266,8 @@ export default function Institutes() {
       .catch(err => { setError(err.message); setLoading(false); });
   }, []);
 
+  useEffect(() => { setRecShown(PAGE_SIZE); setOtherShown(PAGE_SIZE); }, [search, type, cityFilter]);
+
   async function handleViewInstitute(id: string) {
     setDetailLoading(true); setSelectedInstitute(null);
     try {
@@ -710,7 +277,7 @@ export default function Institutes() {
   }
 
   const cities = [...new Set(institutes.map(i => i.city).filter(Boolean))].sort() as string[];
-  const types  = [...new Set(institutes.map(i => i.type).filter(Boolean))].sort() as string[];
+  const types = [...new Set(institutes.map(i => i.type).filter(Boolean))].sort() as string[];
 
   const allFiltered = institutes.filter(inst =>
     inst.name?.toLowerCase().includes(search.toLowerCase()) &&
@@ -718,20 +285,16 @@ export default function Institutes() {
     (cityFilter === "" || inst.city === cityFilter)
   );
 
-  /* ── Personalization: split into recommended + rest ─────────────────────── */
   const relevantTypes = isAssessed ? getRelevantTypes(topCareers) : new Set<string>();
-
-  const recommended = isAssessed
-    ? allFiltered.filter(inst => relevantTypes.has(inst.type))
-    : [];
+  const recommended = isAssessed ? allFiltered.filter(inst => relevantTypes.has(inst.type)) : [];
   const recIds = new Set(recommended.map(i => i.id));
   const others = allFiltered.filter(i => !recIds.has(i.id));
 
+  const hasFilters = !!(search || type || cityFilter);
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50">
-      <div className="flex gap-2">
-        {[0,1,2].map(i => <div key={i} className="w-3 h-3 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay:`${i*0.15}s` }} />)}
-      </div>
+      <div className="flex gap-2">{[0, 1, 2].map(i => <div key={i} className="w-3 h-3 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}</div>
       <p className="text-gray-400 text-sm tracking-widest uppercase">Loading Institutes</p>
     </div>
   );
@@ -739,36 +302,31 @@ export default function Institutes() {
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
 
   return (
-    <div style={{ ...F, color:"#1e2a3a", background:"#f7f9fc", minHeight:"100vh" }}>
+    <div style={{ ...F, color: "#1e2a3a", background: "#f7f9fc", minHeight: "100vh" }}>
       <style>{`
-        @keyframes pulse-dot{0%,100%{transform:scale(1)}50%{transform:scale(1.4)}}
-        @keyframes spin-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes pulse-dot { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+        @keyframes spin-slow  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
       `}</style>
 
       {/* ── HERO ── */}
-      <section style={{ background:"#ffffff", padding:"64px 24px 56px", textAlign:"center", position:"relative", overflow:"hidden", borderBottom:"1px solid #e8edf3" }}>
-        <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 70%)", top:-200, right:-80, pointerEvents:"none" }} />
-        <div style={{ position:"absolute", width:320, height:320, borderRadius:"50%", background:"radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%)", bottom:-120, left:-60, pointerEvents:"none" }} />
-        <div style={{ position:"absolute", width:220, height:220, borderRadius:"50%", border:"1.5px dashed rgba(139,92,246,0.15)", top:"50%", right:"8%", transform:"translateY(-50%)", animation:"spin-slow 30s linear infinite", pointerEvents:"none" }} />
-
-        <div style={{ position:"relative", zIndex:1, maxWidth:620, margin:"0 auto" }}>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(219,234,254,0.7)", backdropFilter:"blur(8px)", color:"#1e5fa8", borderRadius:999, padding:"6px 16px", fontSize:11, fontWeight:800, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:22, border:"1px solid rgba(59,130,246,0.2)", boxShadow:"0 2px 12px rgba(59,130,246,0.1)" }}>
-            <span style={{ width:7, height:7, borderRadius:"50%", background:"#22c55e", display:"inline-block", animation:"pulse-dot 1.5s ease infinite" }} />
+      <section style={{ background: "#ffffff", padding: "100px 24px 44px", textAlign: "center", position: "relative", overflow: "hidden", borderBottom: "1px solid #e8edf3" }}>
+        <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 70%)", top: -200, right: -80, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%)", bottom: -120, left: -60, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", border: "1.5px dashed rgba(139,92,246,0.15)", top: "50%", right: "8%", transform: "translateY(-50%)", animation: "spin-slow 30s linear infinite", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 620, margin: "0 auto" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(219,234,254,0.7)", backdropFilter: "blur(8px)", color: "#1e5fa8", borderRadius: 999, padding: "6px 16px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 22, border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 2px 12px rgba(59,130,246,0.1)" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse-dot 1.5s ease infinite" }} />
             Maharashtra · {institutes.length}+ Institutes
           </div>
-
-          <h1 style={{ fontFamily:"'Lora',serif", fontSize:"clamp(34px,5vw,54px)", fontWeight:600, color:"#1e2a3a", lineHeight:1.15, marginBottom:16 }}>
+          <h1 style={{ fontFamily: "'Lora',serif", fontSize: "clamp(28px,5vw,54px)", fontWeight: 600, color: "#1e2a3a", lineHeight: 1.15, marginBottom: 16 }}>
             Find Your{" "}
-            <span className="bg-gradient-to-r from-purple-500 to-pink-500" style={{ WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text" }}>Dream College</span>
+            <span className="bg-gradient-to-r from-purple-500 to-pink-500" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Dream College</span>
           </h1>
-
-          <p style={{ fontSize:16, color:"#3d4f63", lineHeight:1.8, maxWidth:440, margin:"0 auto" }}>
+          <p style={{ fontSize: 15, color: "#3d4f63", lineHeight: 1.8, maxWidth: 440, margin: "0 auto" }}>
             Explore top institutes with fees, placements, courses &amp; more — all in one place.
           </p>
-
-          {/* Personalization note */}
           {isAssessed && topCareers.length > 0 && (
-            <div style={{ marginTop:20, display:"inline-flex", alignItems:"center", gap:8, background:"linear-gradient(135deg,#ede9fe,#eff6ff)", border:"1px solid #c7d2fe", borderRadius:99, padding:"8px 18px", fontSize:12, color:"#4338ca", fontWeight:700 }}>
+            <div style={{ marginTop: 20, display: "inline-flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg,#ede9fe,#eff6ff)", border: "1px solid #c7d2fe", borderRadius: 99, padding: "8px 18px", fontSize: 12, color: "#4338ca", fontWeight: 700 }}>
               <Sparkles size={12} /> Showing colleges best suited for: {topCareers.slice(0, 2).join(", ")}
               {topCareers.length > 2 ? ` +${topCareers.length - 2} more` : ""}
             </div>
@@ -777,100 +335,162 @@ export default function Institutes() {
       </section>
 
       {/* ── FILTER BAR ── */}
-      <div style={{ position:"sticky", top:0, zIndex:30, background:"rgba(255,255,255,0.92)", backdropFilter:"blur(12px)", borderBottom:"1px solid #e8edf3", boxShadow:"0 2px 16px rgba(30,42,58,0.06)", padding:"14px 24px" }}>
-        <div style={{ maxWidth:1100, margin:"0 auto", display:"flex", flexWrap:"wrap", gap:10, alignItems:"center" }}>
-          <div style={{ position:"relative", flex:"1 1 200px" }}>
-            <svg style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"#7a8fa6", pointerEvents:"none" }} width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div style={{
+        position: "sticky", top: 0, zIndex: 30,
+        background: "rgba(255,255,255,0.95)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid #e8edf3",
+        boxShadow: "0 2px 16px rgba(30,42,58,0.06)",
+      }}>
+        <div style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          padding: "14px 24px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+        }}>
+          {/* Search — takes remaining space */}
+          <div style={{ position: "relative", flex: "1 1 220px", minWidth: 180 }}>
+            <svg style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", pointerEvents: "none" }} width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input type="text" placeholder="Search institutes..." value={search} onChange={e => setSearch(e.target.value)}
-              style={{ width:"100%", padding:"10px 14px 10px 38px", border:"1.5px solid #e2e8f0", borderRadius:12, fontSize:13, fontFamily:"'Nunito',sans-serif", color:"#1e2a3a", outline:"none", boxSizing:"border-box" }}
-              onFocus={e => { e.target.style.borderColor="#7c3aed"; e.target.style.boxShadow="0 0 0 3px rgba(124,58,237,0.1)"; }}
-              onBlur={e => { e.target.style.borderColor="#e2e8f0"; e.target.style.boxShadow="none"; }} />
+            <input
+              type="text"
+              placeholder="Search institutes..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 14px 10px 40px",
+                border: "1.5px solid #e2e8f0",
+                borderRadius: 12,
+                fontSize: 13,
+                fontFamily: "'Nunito', sans-serif",
+                fontWeight: 600,
+                color: "#1e2a3a",
+                outline: "none",
+                boxSizing: "border-box",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+              }}
+              onFocus={e => { e.target.style.borderColor = "#7c3aed"; e.target.style.boxShadow = "0 0 0 3px rgba(124,58,237,0.1)"; }}
+              onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
+            />
           </div>
-          <select value={type} onChange={e => setType(e.target.value)}
-            style={{ padding:"10px 14px", border:"1.5px solid #e2e8f0", borderRadius:12, fontSize:13, fontFamily:"'Nunito',sans-serif", color:"#1e2a3a", background:"#fff", outline:"none", cursor:"pointer" }}>
+
+          {/* Type dropdown — clean labels */}
+          <FilterSelect value={type} onChange={setType}>
             <option value="">All Types</option>
-            {types.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
-            style={{ padding:"10px 14px", border:"1.5px solid #e2e8f0", borderRadius:12, fontSize:13, fontFamily:"'Nunito',sans-serif", color:"#1e2a3a", background:"#fff", outline:"none", cursor:"pointer" }}>
+            {types.map(t => (
+              <option key={t} value={t}>{cleanTypeLabel(t)}</option>
+            ))}
+          </FilterSelect>
+
+          {/* City dropdown */}
+          <FilterSelect value={cityFilter} onChange={setCityFilter}>
             <option value="">All Cities</option>
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          {(search || type || cityFilter) && (
-            <button onClick={() => { setSearch(""); setType(""); setCityFilter(""); }}
-              style={{ padding:"9px 14px", fontSize:12, fontWeight:700, color:"#7a8fa6", border:"1.5px solid #e2e8f0", borderRadius:12, background:"#fff", cursor:"pointer", fontFamily:"'Nunito',sans-serif", display:"flex", alignItems:"center", gap:6 }}>
-              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              Clear
+          </FilterSelect>
+
+          {/* Clear button */}
+          {hasFilters && (
+            <button
+              onClick={() => { setSearch(""); setType(""); setCityFilter(""); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "10px 14px",
+                fontSize: 12, fontWeight: 700,
+                color: "#ef4444",
+                border: "1.5px solid #fecaca",
+                borderRadius: 12,
+                background: "#fff5f5",
+                cursor: "pointer",
+                fontFamily: "'Nunito', sans-serif",
+                transition: "background 0.15s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              Clear filters
             </button>
           )}
-          <span style={{ marginLeft:"auto", fontSize:12, color:"#7a8fa6", fontWeight:700 }}>{allFiltered.length} results</span>
+
+          {/* Result count — pushed to right */}
+          <span style={{ marginLeft: "auto", fontSize: 13, color: "#7a8fa6", fontWeight: 700, whiteSpace: "nowrap" }}>
+            {allFiltered.length} <span style={{ fontWeight: 400 }}>results</span>
+          </span>
         </div>
       </div>
 
       {/* ── CARDS ── */}
-      <section className="px-4 md:px-20 py-10">
+      <section className="px-3 sm:px-6 md:px-12 lg:px-20 py-6 sm:py-10">
 
         {/* Recommended section */}
         {isAssessed && recommended.length > 0 && (
-          <div style={{ marginBottom:40 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
-              <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#6366f1,#8b5cf6)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Sparkles size={13} color="#fff" />
               </div>
-              <h2 style={{ fontSize:"1rem", fontWeight:800, color:"#1e1b4b", margin:0 }}>Best Colleges For Your Career Goals</h2>
-              <span style={{ fontSize:"0.72rem", color:"#6366f1", background:"#ede9fe", borderRadius:99, padding:"0.2rem 0.6rem", fontWeight:700 }}>Personalised</span>
+              <h2 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#1e1b4b", margin: 0 }}>Best Colleges For Your Career Goals</h2>
+              <span style={{ fontSize: "0.7rem", color: "#6366f1", background: "#ede9fe", borderRadius: 99, padding: "0.2rem 0.6rem", fontWeight: 700, whiteSpace: "nowrap" }}>Personalised</span>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {recommended.map(inst => (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              {recommended.slice(0, recShown).map(inst => (
                 <CollegeCard key={inst.id} inst={inst} highlighted onView={handleViewInstitute} />
               ))}
             </div>
-            <div style={{ height:1, background:"linear-gradient(90deg,transparent,#e2e8f0,transparent)", margin:"32px 0 16px" }} />
-            <p style={{ fontSize:13, color:"#94a3b8", marginBottom:24 }}>All other institutes</p>
+            {recommended.length > PAGE_SIZE && (
+              <ViewMoreButton shown={recShown} total={recommended.length} onToggle={() => setRecShown(s => s < recommended.length ? recommended.length : PAGE_SIZE)} />
+            )}
+            <div style={{ height: 1, background: "linear-gradient(90deg,transparent,#e2e8f0,transparent)", margin: "28px 0 12px" }} />
+            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>All other institutes</p>
           </div>
         )}
 
-        {/* All / remaining institutes */}
+        {/* All / remaining */}
         {allFiltered.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-5xl mb-4">🔍</p>
-            <p className="text-gray-500 text-lg font-medium">No institutes found</p>
+          <div className="text-center py-16 sm:py-20">
+            <p className="text-4xl sm:text-5xl mb-4">🔍</p>
+            <p className="text-gray-500 text-base sm:text-lg font-medium">No institutes found</p>
             <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-4">
-            {others.map(inst => (
-              <CollegeCard key={inst.id} inst={inst} highlighted={false} onView={handleViewInstitute} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              {others.slice(0, otherShown).map(inst => (
+                <CollegeCard key={inst.id} inst={inst} highlighted={false} onView={handleViewInstitute} />
+              ))}
+            </div>
+            {others.length > PAGE_SIZE && (
+              <ViewMoreButton shown={otherShown} total={others.length} onToggle={() => setOtherShown(s => s < others.length ? others.length : PAGE_SIZE)} />
+            )}
+          </>
         )}
       </section>
 
-      {/* ── Detail Modal (unchanged) ── */}
+      {/* ── Detail Modal ── */}
       {(detailLoading || selectedInstitute) && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => { setSelectedInstitute(null); setDetailLoading(false); }}>
           <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg relative max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-center pt-3 pb-1 sm:hidden">
-              <div className="w-10 h-1 bg-gray-200 rounded-full" />
-            </div>
+            <div className="flex justify-center pt-3 pb-1 sm:hidden"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
             <button onClick={() => { setSelectedInstitute(null); setDetailLoading(false); }} className="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center z-10 transition">
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-
             {detailLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <div className="flex gap-2">{[0,1,2].map(i => <div key={i} className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay:`${i*0.15}s` }} />)}</div>
+                <div className="flex gap-2">{[0, 1, 2].map(i => <div key={i} className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}</div>
                 <p className="text-gray-400 text-sm">Fetching details...</p>
               </div>
             ) : selectedInstitute && (
               <div>
                 <div className="relative h-52 rounded-t-3xl sm:rounded-t-2xl overflow-hidden">
-                  <Image src={selectedInstitute.image || getDefaultImage(selectedInstitute.type)} alt={selectedInstitute.name} fill style={{ objectFit:"cover" }} unoptimized />
+                  <Image src={selectedInstitute.image || getDefaultImage(selectedInstitute.type)} alt={selectedInstitute.name} fill style={{ objectFit: "cover" }} unoptimized />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="absolute bottom-4 left-5 right-14">
-                    <span className={`${getTypeColor(selectedInstitute.type).bg} ${getTypeColor(selectedInstitute.type).text} text-xs font-bold px-2.5 py-1 rounded-full inline-block mb-2`}>{selectedInstitute.type}</span>
+                    <span className={`${getTypeColor(selectedInstitute.type).bg} ${getTypeColor(selectedInstitute.type).text} text-xs font-bold px-2.5 py-1 rounded-full inline-block mb-2`}>{cleanTypeLabel(selectedInstitute.type)}</span>
                     <h2 className="text-white font-black text-xl leading-tight">{selectedInstitute.name}</h2>
                     <p className="text-white/70 text-sm mt-1 flex items-center gap-1">
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
