@@ -35,6 +35,14 @@ const nextConfig: import('next').NextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
+      {
+        protocol: "https",
+        hostname: "t3.ftcdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "www.shutterstock.com",
+      },
     ],
   },
 };

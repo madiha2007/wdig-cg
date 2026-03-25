@@ -2,10 +2,12 @@
 "use client";
 
 import Image from "next/image";
-import Roadmap from "@/components/Roadmap";
+import Roadmap, { RoadmapSection } from "@/components/RoadmapSection";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { HeroSection } from "../components/HeroSection";
+import { FeaturesGridSection } from "@/components/features-grid-section"
 
 /* ─── DATA ──────────────────────────────────────────────── */
 
@@ -214,10 +216,10 @@ const F = { fontFamily: "'Nunito', sans-serif" };
 export default function HomePage() {
   const router = useRouter();
   const [hasResult, setHasResult] = useState(false);
-  const typedRole = useTypewriter(ROLE_WORDS, 90, 1600);
-  const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 600], [0, 60]);
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0.5]);
+  // const typedRole = useTypewriter(ROLE_WORDS, 90, 1600);
+  // const { scrollY } = useScroll();
+  // const heroY = useTransform(scrollY, [0, 600], [0, 60]);
+  // const heroOpacity = useTransform(scrollY, [0, 400], [1, 0.5]);
 
   useEffect(() => {
     setHasResult(!!localStorage.getItem("aptitudeResult"));
@@ -262,7 +264,7 @@ export default function HomePage() {
       `}</style>
 
       {/* ── ANNOUNCEMENT BAR ── */}
-      <div className="bg-sky-900" style={{
+      {/* <div className="bg-sky-900" style={{
         borderBottom: "1px solid #bfdbfe",
         color: "#ffffff", fontSize: 12, fontWeight: 700,
         textAlign: "center", padding: "8px 16px", letterSpacing: "0.04em",
@@ -272,194 +274,20 @@ export default function HomePage() {
           🎯&nbsp; Take the aptitude test and get your career match in minutes &nbsp;·&nbsp;
           ✨&nbsp; New: Career roadmaps updated for 2025
         </marquee>
-      </div>
+      </div> */}
 
-      {/* ════════════════════════════════════════════
-          HERO  — left: copy + CTA + 3-step strip
-                  right: image
-      ════════════════════════════════════════════ */}
-      <section style={{
-        background: "#ffffff",
-        padding: "64px 24px 72px",
-        position: "relative", overflow: "hidden",
-        minHeight: "88vh", display: "flex", alignItems: "center",
-      }}>
-        <Particles />
+{/* Announcement bar stays above everything */}
+<div style={{ position: 'relative', zIndex: 0 }}>
+  <HeroSection />
+</div>
 
-        {/* Animated orbs */}
-        <motion.div
-          animate={{ scale: [1, 1.08, 1], rotate: [0, 15, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          style={{ position: "absolute", width: 580, height: 580, borderRadius: "50%", background: "radial-gradient(circle,rgba(139,92,246,0.1) 0%,transparent 70%)", top: -200, right: -80, pointerEvents: "none" }}
-        />
-        <motion.div
-          animate={{ scale: [1, 1.06, 1], rotate: [0, -10, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          style={{ position: "absolute", width: 380, height: 380, borderRadius: "50%", background: "radial-gradient(circle,rgba(59,130,246,0.09) 0%,transparent 70%)", bottom: -100, left: -80, pointerEvents: "none" }}
-        />
-        <div style={{ position: "absolute", width: 280, height: 280, borderRadius: "50%", border: "1.5px dashed rgba(139,92,246,0.18)", top: "50%", right: "6%", transform: "translateY(-50%)", animation: "spin-slow 30s linear infinite", pointerEvents: "none" }} />
-
-        <motion.div style={{ y: heroY, opacity: heroOpacity, position: "relative", zIndex: 1, maxWidth: 1060, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", gap: 60, flexWrap: "wrap" }}>
-
-          {/* ── Left ── */}
-          <div style={{ flex: "1 1 380px" }}>
-
-            {/* Pill badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, type: "spring" }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(219,234,254,0.7)", backdropFilter: "blur(8px)", color: "#1e5fa8", borderRadius: 999, padding: "6px 16px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 24, border: "1px solid rgba(59,130,246,0.2)", boxShadow: "0 2px 12px rgba(59,130,246,0.1)" }}
-            >
-              <motion.span
-                animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
-                style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }}
-              />
-              AI-Powered Career Guidance
-            </motion.div>
-
-            {/* Headline with typewriter */}
-            <motion.h1
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1, type: "spring", stiffness: 80 }}
-              style={{
-                fontFamily: "'Lora', serif",
-                fontSize: "clamp(36px,5.5vw,60px)",
-                fontWeight: 600,
-                color: "#1e2a3a",
-                lineHeight: 1.1,
-                marginBottom: 18
-              }}
-            >
-              Become the
-
-              <span
-                className="bg-gradient-to-r from-purple-500 to-pink-500 block"
-                style={{
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text"
-                }}
-              >
-                {typedRole}
-                <span
-                  className="cursor-blink"
-                  style={{ WebkitTextFillColor: "#110d5c", color: "#0e2857" }}
-                >
-                  |
-                </span>
-              </span>
-
-              <span
-                style={{
-                  color: "#7a8fa6",
-                  fontSize: "0.7em",
-                  fontWeight: 400
-                }}
-              >
-                you were always meant to be.
-              </span>
-            </motion.h1>
-
-            {/* Sub-copy */}
-            <motion.p
-              initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.25 }}
-              style={{ fontSize: 16, color: "#3d4f63", lineHeight: 1.8, marginBottom: 36, maxWidth: 440 }}
-            >
-              Our AI analyses your aptitude, personality, and goals to match you with careers you'll actually love — then maps out <strong>exactly</strong> how to get there.
-            </motion.p>
-
-            {/* CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.38 }}
-            >
-              {hasResult ? (
-                <button onClick={() => go("/results")} className="hero-cta-btn "
-                  style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "#fff", border: "none", borderRadius: 999, padding: "16px 40px", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 30px rgba(34,197,94,0.35)", transition: "transform .2s, box-shadow .2s", ...F }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.02)"; e.currentTarget.style.boxShadow = "0 14px 40px rgba(34,197,94,0.46)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(34,197,94,0.35)"; }}
-                >
-                  View My Results ✓
-                </button>
-              ) : (
-                <button onClick={() => go("/aptitude")} className="hero-cta-btn bg-gradient-to-r from-purple-500 to-pink-500"
-                  style={{ color: "#fff", border: "none", borderRadius: 999, padding: "16px 40px", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: "0 10px 32px rgba(109,40,217,0.32)", transition: "transform .2s, box-shadow .2s", ...F, display: "inline-flex", alignItems: "center", gap: 10 }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px) scale(1.02)"; e.currentTarget.style.boxShadow = "0 16px 40px rgba(109,40,217,0.44)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = "0 10px 32px rgba(109,40,217,0.32)"; }}
-                >
-                  Take the Aptitude Test <span style={{ fontSize: 20 }}>
-                    <Image src="/assets/test.png" alt="Arrow Right" width={30} height={30} />
-                  </span>
-                </button>
-              )}
-            </motion.div>
-
-          </div>
-
-          {/* ── Right: hero image ── */}
-          <motion.div
-            initial={{ opacity: 0, x: 50, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.2, type: "spring", stiffness: 70 }}
-            style={{ flex: "1 1 320px", display: "flex", justifyContent: "center", position: "relative" }}
-          >
-            <div style={{ position: "relative", maxWidth: 500, width: "100%" }}>
-              <div style={{ position: "absolute", inset: -20, borderRadius: 36, filter: "blur(24px)" }} />
-              <Image
-                src="/assets/hero.jpg"
-                alt="Students exploring careers"
-                width={980} height={880}
-                style={{ borderRadius: 28, position: "relative", boxShadow: "0 24px 60px rgba(109,40,217,0.16)", width: "100%" }}
-              />
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* Scroll hint */}
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
-          style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)" }}
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            style={{ color: "#c0cdd9", fontSize: 11, letterSpacing: "0.12em", fontWeight: 700, textAlign: "center" }}
-          >
-            ↓ &nbsp; SCROLL TO EXPLORE
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          FEATURES  — what the platform offers
-          (no CTA here — let user absorb first)
-      ════════════════════════════════════════════ */}
-      <section style={{ background: "linear-gradient(180deg,#fff 0%,#f7f9fc 100%)", padding: "96px 24px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <motion.div
-            initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }} transition={{ duration: 0.55 }}
-            style={{ textAlign: "center", marginBottom: 60 }}
-          >
-            <span style={{ display: "inline-block", background: "linear-gradient(135deg,#dbeafe,#ede9fe)", color: "#1e5fa8", borderRadius: 999, padding: "5px 16px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16, border: "1px solid rgba(196,181,253,0.4)" }}>
-              Everything You Need
-            </span>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: "clamp(28px,4vw,46px)", fontWeight: 600, color: "#1e2a3a", lineHeight: 1.2 }}>
-              One platform. Every answer<br />
-              <span style={{ background: "linear-gradient(135deg,#40c9ff,#e81cff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                about your future.
-              </span>
-            </h2>
-          </motion.div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 22 }}>
-            {features.map((f, i) => <FeatureCard key={f.title} f={f} i={i} />)}
-          </div>
-        </div>
-      </section>
+<FeaturesGridSection />
 
       {/* ════════════════════════════════════════════
           ROADMAP  — the 7-level interactive journey
           This IS the "how it works" — no duplication
       ════════════════════════════════════════════ */}
-      <Roadmap />
+      <RoadmapSection />
 
       {/* ════════════════════════════════════════════
           FINAL CTA  — one clean closer, not a repeat
@@ -467,45 +295,102 @@ export default function HomePage() {
       ════════════════════════════════════════════ */}
    {/* ── FOOTER CTA ── */}
       {/* CHANGED: was yellow/peach → now blue→purple gradient to match theme */}
-      <section className="bg-sky-900" style={{
-        
+     <section style={{
         padding: "96px 24px",
         textAlign: "center",
         position: "relative",
         overflow: "hidden",
+        background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #e94560 100%)",
       }}>
-        {/* White orb decorations */}
-        <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,0.08) 0%,transparent 70%)", top: -200, right: -100, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,0.06) 0%,transparent 70%)", bottom: -120, left: -60, pointerEvents: "none" }} />
-        {/* Subtle dot grid */}
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.05, backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.9) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+        {/* Orb decorations */}
+        <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,0.10) 0%,transparent 70%)", top: -200, right: -100, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle,rgba(255,255,255,0.08) 0%,transparent 70%)", bottom: -120, left: -60, pointerEvents: "none" }} />
+        {/* Dot grid */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.06, backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.9) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
 
         <motion.div
           initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           transition={{ duration: 0.6 }}
           style={{ maxWidth: 560, margin: "0 auto", position: "relative", zIndex: 1 }}
         >
-          {/* Badge — white frosted instead of yellow */}
-          <span style={{ display: "inline-block", background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", color: "#fff", borderRadius: 999, padding: "5px 16px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 20, border: "1px solid rgba(255,255,255,0.3)" }}>
+          {/* Badge */}
+          <span style={{
+            display: "inline-block",
+            background: "rgba(255,255,255,0.18)",
+            backdropFilter: "blur(8px)",
+            color: "#fff",
+            borderRadius: 999,
+            padding: "5px 16px",
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            marginBottom: 20,
+            border: "1px solid rgba(255,255,255,0.35)",
+          }}>
             Free &amp; Takes 15 Minutes
           </span>
 
-          {/* Heading — white on dark */}
-          <h2 style={{ fontFamily: "'Lora', serif", fontSize: "clamp(28px,4vw,46px)", fontWeight: 600, color: "#fff", lineHeight: 1.2, marginBottom: 16 }}>
-            Ready to find your path?
+          {/* Heading */}
+          <h2 style={{
+            fontFamily: "'Lora', serif",
+            fontSize: "clamp(28px,4vw,46px)",
+            fontWeight: 700,
+            color: "#fff",
+            lineHeight: 1.2,
+            marginBottom: 16,
+            fontStyle: "italic",
+          }}>
+            Ready to find your{" "}
+            <span style={{
+              background: "linear-gradient(135deg,#fde68a,#f9a8d4)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}>
+              path?
+            </span>
           </h2>
 
-          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.72)", lineHeight: 1.8, marginBottom: 40, maxWidth: 420, margin: "0 auto 40px" }}>
+          <p style={{
+            fontSize: 16,
+            color: "rgba(255,255,255,0.78)",
+            lineHeight: 1.8,
+            marginBottom: 40,
+            maxWidth: 420,
+            margin: "0 auto 40px",
+          }}>
             Your future starts with one honest test. Take it now — it's completely free.
           </p>
 
-          {/* Button — white with blue text (inverted for contrast) */}
+          {/* Button */}
           <button
             onClick={() => go(hasResult ? "/results" : "/aptitude")}
             className="hero-cta-btn"
-            style={{ background: "#fff", color: "#0369a1", border: "none", borderRadius: 999, padding: "18px 52px", fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: "0 10px 32px rgba(0,0,0,0.2)", transition: "transform .2s, box-shadow .2s", ...F, display: "inline-flex", alignItems: "center", gap: 10 }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px) scale(1.03)"; e.currentTarget.style.boxShadow = "0 18px 44px rgba(0,0,0,0.3)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = "0 10px 32px rgba(0,0,0,0.2)"; }}
+            style={{
+              background: "#fff",
+              color: "#0f3460",
+              border: "none",
+              borderRadius: 999,
+              padding: "18px 52px",
+              fontSize: 16,
+              fontWeight: 800,
+              cursor: "pointer",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.25)",
+              transition: "transform .2s, box-shadow .2s",
+              ...F,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = "translateY(-4px) scale(1.03)"
+              e.currentTarget.style.boxShadow = "0 20px 48px rgba(0,0,0,0.32)"
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = "translateY(0) scale(1)"
+              e.currentTarget.style.boxShadow = "0 10px 40px rgba(0,0,0,0.25)"
+            }}
           >
             {hasResult ? "View My Results ✓" : "Take the Aptitude Test "}
             <span style={{ fontSize: 20 }}>{hasResult ? "" : "🚀"}</span>
@@ -513,6 +398,7 @@ export default function HomePage() {
 
         </motion.div>
       </section>
+      
     </div>
   );
 }
