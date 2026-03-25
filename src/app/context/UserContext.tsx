@@ -271,7 +271,7 @@ const saveUserData = useCallback(async (partial: Partial<UserData>) => {
         time_horizon:         partial.time_horizon,
         skills:               partial.skills,
         free_time_activities: partial.hobbies,
-        past_achievements:    partial.past_achievements,
+        // past_achievements:    partial.past_achievements,
         success_definition:   partial.success_definition,
         ten_year_vision:      partial.ten_year_vision,
         secret_dream:         partial.secret_dream,

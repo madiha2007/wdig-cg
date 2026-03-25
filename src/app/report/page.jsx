@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProfileSnapshot from "../../components/ProfileSnapshot";
+import { Suspense } from "react";
 
 const T = {
   ink:"#0D1B2A",inkMid:"#2C3E50",inkLight:"#5D7A8A",
@@ -285,7 +286,7 @@ function LoadingScreen(){
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────────
-export default function ReportPage(){
+function ReportPageInner(){
   const router=useRouter();
   const sp=useSearchParams();
   const uid=sp.get("uid") || "";
@@ -778,5 +779,26 @@ export default function ReportPage(){
         </div>
       </div>
     </>
+  );
+}
+
+export default function ReportPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: "100vh",
+        background: `linear-gradient(135deg, #0D1B2A, #0D2E3A)`,
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 20,
+        fontFamily: "Georgia, serif",
+      }}>
+        <div style={{ fontSize: "3.5rem" }}>✦</div>
+        <div style={{ fontSize: "1.2rem", color: "rgba(255,255,255,0.7)" }}>
+          Loading Report…
+        </div>
+      </div>
+    }>
+      <ReportPageInner />
+    </Suspense>
   );
 }

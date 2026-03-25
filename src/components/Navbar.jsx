@@ -80,7 +80,7 @@ useEffect(() => {
           <NavItem href="/explore" icon={icons.career} label="Explore Careers" />
           <NavItem href="/institute" icon={icons.institute} label="Find Institutes" />
           <NavItem href="/mentors" icon={icons.mentor} label="Mentorship" />
-          <NavItem href="/trending" icon={icons.trending} label="Trending" />
+          {/* <NavItem href="/trending" icon={icons.trending} label="Trending" /> */}
 
           {!user ? (
             <>
@@ -194,7 +194,7 @@ useEffect(() => {
             <MobileNavItem href="/explore" icon={icons.career} label="Explore Careers" close={setMenuOpen} />
             <MobileNavItem href="/institute" icon={icons.institute} label="Find Institutes" close={setMenuOpen} />
             <MobileNavItem href="/mentors" icon={icons.mentor} label="Mentorship" close={setMenuOpen} />
-            <MobileNavItem href="/trending" icon={icons.trending} label="Trending" close={setMenuOpen} />
+            {/* <MobileNavItem href="/trending" icon={icons.trending} label="Trending" close={setMenuOpen} /> */}
           </div>
 
           {/* LOGGED IN EXTRA LINKS */}

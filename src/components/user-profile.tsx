@@ -315,11 +315,11 @@ function EditModal({
                     {form.email}
                   </div>
                 </div>
-                <EditField
+                {/* <EditField
                   lbl="Phone" icon={<Phone size={11} />}
                   value={form.phone} onChange={v => setForm(p => ({ ...p, phone: v }))}
                   placeholder="+91 98765 43210" type="tel"
-                />
+                /> */}
                 <EditField
                   lbl="Location" icon={<MapPin size={11} />}
                   value={form.location} onChange={v => setForm(p => ({ ...p, location: v }))}
@@ -498,7 +498,7 @@ export default function UserProfile() {
       `Name:      ${userData.name}`,
       `Email:     ${userData.email}`,
       `Role:      ${userData.role}`,
-      `Education: ${userData.education}`,
+      // `Education: ${userData.education}`,
       `Location:  ${userData.location}`,
       "",
       "── Bio ────────────────────────────",
@@ -618,7 +618,7 @@ export default function UserProfile() {
                     )}
                   </div>
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem 1.1rem", color: "#64748b", fontSize: "0.78rem", marginBottom: "0.75rem" }}>
+                  {/* <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem 1.1rem", color: "#64748b", fontSize: "0.78rem", marginBottom: "0.75rem" }}>
                     {[
                       { icon: <Mail size={11} />, val: userData.email },
                       userData.location && { icon: <MapPin size={11} />, val: userData.location },
@@ -630,7 +630,7 @@ export default function UserProfile() {
                         {item.icon}{item.val}
                       </span>
                     ))}
-                  </div>
+                  </div> */}
 
                   {userData.bio && (
                     <p style={{ fontSize: "0.82rem", lineHeight: 1.7, color: "#475569", maxWidth: "52ch", margin: 0 }}>

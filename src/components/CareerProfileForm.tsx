@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "../../firebase";
+import { Suspense } from "react";
 
 // ── Design tokens — matches your report.js T object exactly ──────────────────
 const T = {
@@ -183,7 +184,8 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function CareerProfileForm() {
+
+function CareerProfileFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromTest = searchParams.get("from") === "aptitude";
@@ -634,5 +636,27 @@ export default function CareerProfileForm() {
         </div>
       </div>
     </>
+  );
+
+  // ... rest of your entire existing component code (useState, useEffect, return, etc.)
+  // Everything stays exactly the same — just moved inside this function
+}
+
+
+export default function CareerProfileForm() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: "100vh",
+        background: `linear-gradient(135deg, #0D1B2A, #0D2E3A)`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "system-ui" }}>
+          Loading…
+        </p>
+      </div>
+    }>
+      <CareerProfileFormInner />
+    </Suspense>
   );
 }
