@@ -275,7 +275,7 @@ router.post("/", async (req, res) => {
     if (normalizedTraits.pressure_conformity > 0.6)
       console.log("⚠️  HIGH external pressure conformity detected");
 
-    const mlRes = await fetch("http://localhost:8000/predict", {
+    const mlRes = await fetch(`${process.env.ML_API_URL}/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ traits: normalizedTraits, firebase_uid }),

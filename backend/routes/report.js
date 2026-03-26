@@ -368,13 +368,13 @@ router.get("/:firebase_uid/pdf", async (req, res) => {
   try {
     const { firebase_uid } = req.params;
 
-    const reportRes = await fetch(`http://localhost:5000/api/report/${firebase_uid}`);
+    const reportRes = await fetch(`${process.env.ML_API_URL}/api/report/${firebase_uid}`);
     if (!reportRes.ok) {
       return res.status(404).json({ error: "Report not found" });
     }
     const reportData = await reportRes.json();
 
-    const pdfRes = await fetch("http://127.0.0.1:5000/api/pdf/generate", {
+    const pdfRes = await fetch(`${process.env.ML_API_URL}/api/pdf/generate`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ ...reportData, firebase_uid }),
