@@ -14,9 +14,9 @@ const icons = {
   institute: "/assets/icons/university.svg",
   mentor:    "/assets/icons/mentor-stroke-rounded.svg",
   profile:   "/assets/icons/profile.png",
-  results:   "/assets/icons/results.png",
-  about:     "/assets/icons/about.png",
-  help:      "/assets/icons/help.png",
+  results:   "/assets/icons/result.svg",
+  about:     "/assets/icons/about.svg",
+  help:      "/assets/icons/help.svg",
 };
 
 /* ─── Animation variants ─── */
