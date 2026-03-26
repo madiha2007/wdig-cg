@@ -235,17 +235,18 @@ function QuestionCard({
 /* ─── Main AptitudeTest ──────────────────────────────────────────────── */
 const AptitudeTest = () => {
   const router = useRouter();
-  const { finalizeAssessment, userProfile } = useAssessment();
-  const { refreshUser } = useUser();
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const { finalizeAssessment } = useAssessment()!;
+  const { refreshUser, userProfile } = useUser();
 
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [skippedQuestions, setSkippedQuestions] = useState(new Set());
-  const [questionStartTime, setQuestionStartTime] = useState(null);
-  const [answerTimes, setAnswerTimes] = useState({});
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [skippedQuestions, setSkippedQuestions] = useState(new Set<string>());
+  const [questionStartTime, setQuestionStartTime] = useState<number | null>(null);
+  const [answerTimes, setAnswerTimes] = useState<Record<string, number>>({});
   const hasSubmitted = useRef(false);
 
   // Gamification state
@@ -295,7 +296,7 @@ const AptitudeTest = () => {
   const isPersonalityQuestion = typeof currentQuestion.options[0] === "object";
   const sec = getSec(currentSection.title);
 
-  const totalQuestions = sections.reduce((sum, s: any) => sum + s.questions.length, 0);
+  const totalQuestions: number = sections.reduce((sum: number, s: any) => sum + s.questions.length, 0);
   const totalAnswered = Object.keys(answers).length;
   const overallProgress = Math.round((totalAnswered / totalQuestions) * 100);
 
