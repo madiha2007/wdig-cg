@@ -705,7 +705,7 @@ export default function DashboardPage() {
         <div style={{ position: "relative", zIndex: 1, maxWidth: 1080, margin: "0 auto", padding: "2.5rem 1.5rem 5rem" }}>
 
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" , margin: "5rem "}}>
             <Greeting
               name={userData.name.split(" ")[0]}
               isAssessed={isAssessed}

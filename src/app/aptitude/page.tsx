@@ -69,6 +69,7 @@ function SectionCompleteOverlay({ section, onContinue }: { section: string; onCo
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 100,
+      padding: "20vh",
       background: "rgba(10,20,30,0.85)", backdropFilter: "blur(12px)",
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>

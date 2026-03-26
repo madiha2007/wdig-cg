@@ -368,17 +368,34 @@ router.get("/:firebase_uid/pdf", async (req, res) => {
   try {
     const { firebase_uid } = req.params;
 
-    const reportRes = await fetch(`${process.env.ML_API_URL}/api/report/${firebase_uid}`);
-    if (!reportRes.ok) {
+    // Query DB directly instead of calling yourself via HTTP
+    const cached = await pool.query(
+      `SELECT r.report_text, p.thinking_style_primary, p.thinking_style_secondary,
+              p.top_careers, p.moderate_careers, p.dominant_traits,
+              p.dimension_scores, p.suppression
+       FROM reports r
+       JOIN predictions p ON p.id = r.prediction_id
+       WHERE r.firebase_uid = $1
+       ORDER BY r.generated_at DESC LIMIT 1`,
+      [firebase_uid]
+    );
+
+    if (cached.rows.length === 0) {
       return res.status(404).json({ error: "Report not found" });
     }
-    const reportData = await reportRes.json();
 
-    const pdfRes = await fetch(`${process.env.ML_API_URL}/api/pdf/generate`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ ...reportData, firebase_uid }),
-    });
+const reportData = { 
+  ...cached.rows[0], 
+  firebase_uid,
+  report: cached.rows[0].report_text,  // ← add this line
+};
+
+const pdfRes = await fetch(`${process.env.ML_API_URL}/generate-pdf`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(reportData),
+});
+    // ... rest of your code
 
     if (!pdfRes.ok) {
       const errText = await pdfRes.text();
