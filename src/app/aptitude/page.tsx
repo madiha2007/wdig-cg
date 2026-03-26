@@ -236,8 +236,8 @@ function QuestionCard({
 const AptitudeTest = () => {
   const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const { finalizeAssessment } = useAssessment()!;
-  const { refreshUser, userProfile } = useUser();
+  const { finalizeAssessment, userProfile } = useAssessment()!;
+  const { refreshUser } = useUser();
 
   const [questions, setQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<string, any>>({});
