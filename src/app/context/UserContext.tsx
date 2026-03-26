@@ -80,7 +80,7 @@ const HIDDEN_TRAITS = [
 // No new DB column needed — works from the cached report_text.
 /* ── Derive skillsToAcquire from traits + careers (no report needed) ─── */
 function deriveSkillsToAcquire(
-  normalizedTraits: Record<string, number>,
+  normalizedTraits: Record<string, number>,   // expects 0-1 scale
   topCareers: { name: string; domain?: string }[]
 ): string[] {
   const SKILL_MAP: Record<string, string> = {
@@ -94,12 +94,17 @@ function deriveSkillsToAcquire(
     teamwork: "Teamwork", innovation_drive: "Innovation Mindset",
   };
 
-  const domains = (topCareers ?? []).slice(0, 3).map(c => (c as any).domain ?? "");
-  const isTech     = domains.some(d => /tech|engineer|data|software/i.test(d));
-  const isBusiness = domains.some(d => /business|finance|consult|manage/i.test(d));
-  const isCreative = domains.some(d => /design|art|media|creat/i.test(d));
-  const isScience  = domains.some(d => /science|research|med|bio|chem/i.test(d));
-  const isLaw      = domains.some(d => /law|legal|policy/i.test(d));
+  // Use BOTH domain field AND career name for matching
+  const careerText = (topCareers ?? [])
+    .slice(0, 5)
+    .map(c => `${(c as any).domain ?? ""} ${c.name ?? ""}`.toLowerCase())
+    .join(" ");
+
+  const isTech     = /tech|engineer|data|software|developer|programmer|analyst|cyber|AI|machine/i.test(careerText);
+  const isBusiness = /business|finance|consult|manag|market|account|economics|entrepreneur|banking/i.test(careerText);
+  const isCreative = /design|art|media|creat|film|music|content|writer|architect|fashion/i.test(careerText);
+  const isScience  = /science|research|doctor|medic|bio|chem|pharma|psycholog|environment/i.test(careerText);
+  const isLaw      = /law|legal|policy|civil|government|public|admin|diplomat/i.test(careerText);
 
   const domainSkills: string[] = [];
   if (isTech)     domainSkills.push("Computational Thinking", "Data Literacy", "Systems Design");
@@ -108,15 +113,27 @@ function deriveSkillsToAcquire(
   if (isScience)  domainSkills.push("Research Methodology", "Statistical Analysis", "Scientific Writing");
   if (isLaw)      domainSkills.push("Legal Reasoning", "Argumentation", "Policy Analysis");
 
-  // Fill from low-scoring traits (raw 0-1 scale)
+  // Low-scoring traits as fallback (0-1 scale, threshold 0.45)
   const lowTraitSkills = Object.entries(normalizedTraits)
     .filter(([k, v]) => (v as number) < 0.45 && SKILL_MAP[k])
     .sort((a, b) => (a[1] as number) - (b[1] as number))
     .slice(0, 4)
     .map(([k]) => SKILL_MAP[k]);
 
-  return [...new Set([...domainSkills, ...lowTraitSkills])].slice(0, 6);
+  const combined = [...new Set([...domainSkills, ...lowTraitSkills])].slice(0, 6);
+
+  // Final safety net — if still empty, pick bottom 6 traits regardless of threshold
+  if (combined.length === 0) {
+    return Object.entries(normalizedTraits)
+      .filter(([k]) => SKILL_MAP[k])
+      .sort((a, b) => (a[1] as number) - (b[1] as number))
+      .slice(0, 6)
+      .map(([k]) => SKILL_MAP[k]);
+  }
+
+  return combined;
 }
+
 
 const Ctx = createContext<UserContextValue | null>(null);
 

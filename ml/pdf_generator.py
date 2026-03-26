@@ -8,7 +8,7 @@ WDIG PDF Report Generator v7.0
 - Fixed: roadmap infographic properly drawn
 """
 
-from flask import Flask, request, jsonify, send_file
+from fastapi.responses import FileResponse
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -701,29 +701,3 @@ def generate_pdf(report_text: str, thinking_style: str, payload: dict = None) ->
     c.save()
     buf.seek(0)
     return buf.read()
-
-# ── Flask ──────────────────────────────────────────────────────────────────────
-app = Flask(__name__)
-
-@app.route("/generate-pdf", methods=["POST"])
-def generate_pdf_endpoint():
-    try:
-        data = request.get_json()
-        report_text    = data.get("report", "")
-        thinking_style = data.get("thinking_style_primary", "Your Profile")
-        if not report_text:
-            return jsonify({"error": "report text required"}), 400
-        pdf_bytes = generate_pdf(report_text, thinking_style, payload=data)
-        return send_file(io.BytesIO(pdf_bytes), mimetype="application/pdf",
-                         as_attachment=True, download_name="wdig-report.pdf")
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok", "version": "7.0"})
-
-if __name__ == "__main__":
-    print("WDIG PDF Generator v7.0 on port 8000")
-    app.run(port=8000, debug=False)

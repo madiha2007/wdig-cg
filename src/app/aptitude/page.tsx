@@ -274,14 +274,29 @@ const AptitudeTest = () => {
 
   const handleNext = () => { if (selectedOption === null) return; advanceQuestion(); };
 
+  /* Restore the saved answer when navigating back */
+  const restoreSelected = (sec: any, qIdx: number) => {
+    const q = sec.questions[qIdx];
+    if (answers[q.id] === undefined) { setSelectedOption(null); return; }
+    const saved = answers[q.id];
+    const idx = q.options.findIndex((opt: any, i: number) =>
+      typeof opt === "object" ? opt.label === saved : i === saved
+    );
+    setSelectedOption(idx >= 0 ? idx : null);
+  };
+
   const handlePrevious = () => {
     setStreak(0);
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(i => i - 1);
+      const newIdx = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(newIdx);
+      restoreSelected(currentSection, newIdx);
     } else if (currentSectionIndex > 0) {
-      const prevSection = sections[currentSectionIndex - 1] as any;
+      const prevSec = sections[currentSectionIndex - 1] as any;
+      const newQIdx = prevSec.questions.length - 1;
       setCurrentSectionIndex(i => i - 1);
-      setCurrentQuestionIndex(prevSection.questions.length - 1);
+      setCurrentQuestionIndex(newQIdx);
+      restoreSelected(prevSec, newQIdx);
     }
   };
 
@@ -357,7 +372,7 @@ const AptitudeTest = () => {
         .apt-body {
           max-width: 1000px;
           margin: 0 auto;
-          padding: 24px 16px 48px;
+          padding: 16px 20px 48px;
           display: grid;
           grid-template-columns: 1fr 2fr;
           gap: 20px;
@@ -369,16 +384,24 @@ const AptitudeTest = () => {
           align-content: start;
         }
         .section-card {
-          background: rgba(255,255,255,0.55);
+          background: rgba(255,255,255,0.5);
           border: 1.5px solid #e8edf3;
           border-radius: 14px;
           padding: 10px 12px;
-          transition: all 0.2s;
-          backdrop-filter: blur(4px);
+          transition: all 0.18s cubic-bezier(.16,1,.3,1);
+          backdrop-filter: blur(6px);
+          outline: none;
+          user-select: none;
         }
+        .section-card:hover {
+          background: rgba(255,255,255,0.85);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+        }
+        .section-card:active { transform: scale(0.97); }
         .section-card.active {
-          background: rgba(255,255,255,0.9);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          background: rgba(255,255,255,0.95);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.09);
         }
         /* Tablet */
         @media (max-width: 768px) {
@@ -405,40 +428,47 @@ const AptitudeTest = () => {
       {showStreakToast && <StreakToast streak={streak} />}
       {showSectionComplete && <SectionCompleteOverlay section={completedSectionName} onContinue={handleSectionContinue} />}
 
-      {/* ── TOP HEADER ── */}
-      <div style={{ background: "#0D1B2A", padding: "0 24px", position: "sticky", top: 0, zIndex: 50, borderBottom: "1.5px solid rgba(255,255,255,0.07)", boxShadow: "0 2px 20px rgba(0,0,0,0.25)" }}>
-        <div className="apt-header-inner" style={{ maxWidth: 1000, margin: "0 auto", display: "flex", alignItems: "center", gap: 16, padding: "12px 0" }}>
-
+      {/* ── PROGRESS BAR STRIP (below site nav, always visible) ── */}
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "16px 20px 0" }}>
+        <div style={{
+          background: "rgba(255,255,255,0.7)",
+          backdropFilter: "blur(12px)",
+          border: "1.5px solid rgba(255,255,255,0.9)",
+          borderRadius: 18,
+          padding: "10px 18px",
+          display: "flex", alignItems: "center", gap: 14,
+          boxShadow: "0 2px 16px rgba(13,27,42,0.07)",
+        }}>
           {/* Section badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.08)", border: `1px solid ${sec.color}50`, borderRadius: 10, padding: "7px 14px", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: sec.bg, border: `1px solid ${sec.color}40`, borderRadius: 10, padding: "6px 12px", flexShrink: 0 }}>
             <span style={{ fontSize: "1rem" }}>{sec.emoji}</span>
             <div>
-              <div style={{ fontSize: "0.58rem", fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: sec.color }}>{sec.label || "Section"}</div>
-              <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{currentSection.title}</div>
+              <div style={{ fontSize: "0.55rem", fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: sec.color }}>{sec.label || "Section"}</div>
+              <div style={{ fontSize: "0.7rem", color: "#5D7A8A", fontWeight: 600 }}>{currentSection.title}</div>
             </div>
           </div>
 
           {/* Progress bar */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.4)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>Overall Progress</span>
-              <span style={{ fontSize: "0.75rem", color: "#14B89A", fontWeight: 800 }}>{overallProgress}%</span>
+              <span style={{ fontSize: "0.6rem", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>Overall Progress</span>
+              <span style={{ fontSize: "0.72rem", color: "#0A7B6B", fontWeight: 800 }}>{overallProgress}%</span>
             </div>
-            <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #0A7B6B, #14B89A)", width: `${overallProgress}%`, transition: "width 0.5s cubic-bezier(.16,1,.3,1)", boxShadow: "0 0 10px rgba(20,184,154,0.5)" }} />
+            <div style={{ height: 7, background: "#e8edf3", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: "100%", borderRadius: 99, background: `linear-gradient(90deg, ${sec.color}, #14B89A)`, width: `${overallProgress}%`, transition: "width 0.5s cubic-bezier(.16,1,.3,1)", boxShadow: "0 0 8px rgba(20,184,154,0.4)" }} />
             </div>
           </div>
 
           {/* Streak badge */}
           {streak >= 2 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(251,146,60,0.15)", border: "1px solid rgba(251,146,60,0.35)", borderRadius: 10, padding: "7px 14px", color: "#fb923c", fontSize: "0.8rem", fontWeight: 800, flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.3)", borderRadius: 10, padding: "6px 12px", color: "#fb923c", fontSize: "0.8rem", fontWeight: 800, flexShrink: 0 }}>
               🔥 {streak}
             </div>
           )}
 
           {/* Q counter */}
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
-            <span style={{ color: "#fff" }}>{totalAnswered}</span> / {totalQuestions}
+          <div style={{ color: "#94a3b8", fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+            <span style={{ color: "#0D1B2A", fontWeight: 800 }}>{totalAnswered}</span> / {totalQuestions}
           </div>
         </div>
       </div>
@@ -459,8 +489,26 @@ const AptitudeTest = () => {
             return (
               <div
                 key={section.title}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setCurrentSectionIndex(sIndex);
+                  setCurrentQuestionIndex(0);
+                  // restore selected option for first question of that section
+                  const firstQ = section.questions[0];
+                  if (answers[firstQ.id] !== undefined) {
+                    const saved = answers[firstQ.id];
+                    const idx = firstQ.options.findIndex((opt: any, i: number) =>
+                      typeof opt === "object" ? opt.label === saved : i === saved
+                    );
+                    setSelectedOption(idx >= 0 ? idx : null);
+                  } else {
+                    setSelectedOption(null);
+                  }
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                 className={`section-card${isActive ? " active" : ""}`}
-                style={{ borderColor: isActive ? `${s.color}35` : "#e8edf3", boxShadow: isActive ? `0 2px 14px ${s.color}12` : "none" }}
+                style={{ borderColor: isActive ? `${s.color}35` : "#e8edf3", boxShadow: isActive ? `0 2px 14px ${s.color}12` : "none", cursor: "pointer" }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
                   <span style={{ width: 26, height: 26, borderRadius: 7, background: isActive ? s.bg : "#f0f4f8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", flexShrink: 0 }}>{s.emoji}</span>
