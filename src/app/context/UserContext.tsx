@@ -78,21 +78,44 @@ const HIDDEN_TRAITS = [
 /* ── Parse skillsToAcquire from report text ─────────────────────────────── */
 // Reads the "## Skillset to Build" section and pulls the skill names out.
 // No new DB column needed — works from the cached report_text.
-function parseSkillsToAcquire(reportText: string | null): string[] {
-  if (!reportText) return [];
-  const match = reportText.match(
-    /## Skillset to Build\n+([\s\S]+?)(?=\n## |$)/i
-  );
-  if (!match) return [];
-  // Extract bold phrases (**Skill Name**) — that's how LLaMA formats skill names
-  const bolds = [...match[1].matchAll(/\*\*([^*]+)\*\*/g)].map(m => m[1].trim());
-  if (bolds.length > 0) return bolds.slice(0, 6);
-  // Fallback: grab first sentence of each paragraph as the skill name
-  return match[1]
-    .split(/\n\n+/)
-    .map(p => p.split(".")[0].replace(/^\d+\.\s*/, "").trim())
-    .filter(s => s.length > 2 && s.length < 60)
-    .slice(0, 6);
+/* ── Derive skillsToAcquire from traits + careers (no report needed) ─── */
+function deriveSkillsToAcquire(
+  normalizedTraits: Record<string, number>,
+  topCareers: { name: string; domain?: string }[]
+): string[] {
+  const SKILL_MAP: Record<string, string> = {
+    creativity: "Creative Thinking", analytical: "Analytical Reasoning",
+    logical: "Logical Deduction", communication: "Communication",
+    leadership: "Leadership", empathy: "Empathy & EQ",
+    problem_solving: "Problem Solving", numerical: "Numerical Aptitude",
+    verbal: "Verbal Fluency", spatial: "Spatial Reasoning",
+    adaptability: "Adaptability", resilience: "Resilience",
+    intrinsic_motivation: "Intrinsic Drive", depth_focus: "Deep Focus",
+    teamwork: "Teamwork", innovation_drive: "Innovation Mindset",
+  };
+
+  const domains = (topCareers ?? []).slice(0, 3).map(c => (c as any).domain ?? "");
+  const isTech     = domains.some(d => /tech|engineer|data|software/i.test(d));
+  const isBusiness = domains.some(d => /business|finance|consult|manage/i.test(d));
+  const isCreative = domains.some(d => /design|art|media|creat/i.test(d));
+  const isScience  = domains.some(d => /science|research|med|bio|chem/i.test(d));
+  const isLaw      = domains.some(d => /law|legal|policy/i.test(d));
+
+  const domainSkills: string[] = [];
+  if (isTech)     domainSkills.push("Computational Thinking", "Data Literacy", "Systems Design");
+  if (isBusiness) domainSkills.push("Strategic Planning", "Financial Literacy", "Stakeholder Management");
+  if (isCreative) domainSkills.push("Visual Communication", "Prototyping", "User Research");
+  if (isScience)  domainSkills.push("Research Methodology", "Statistical Analysis", "Scientific Writing");
+  if (isLaw)      domainSkills.push("Legal Reasoning", "Argumentation", "Policy Analysis");
+
+  // Fill from low-scoring traits (raw 0-1 scale)
+  const lowTraitSkills = Object.entries(normalizedTraits)
+    .filter(([k, v]) => (v as number) < 0.45 && SKILL_MAP[k])
+    .sort((a, b) => (a[1] as number) - (b[1] as number))
+    .slice(0, 4)
+    .map(([k]) => SKILL_MAP[k]);
+
+  return [...new Set([...domainSkills, ...lowTraitSkills])].slice(0, 6);
 }
 
 const Ctx = createContext<UserContextValue | null>(null);
@@ -311,10 +334,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     [skillMap]
   );
 
-  const skillsToAcquire = React.useMemo(
-    () => parseSkillsToAcquire(reportText),
-    [reportText]
-  );
+const skillsToAcquire = React.useMemo(() => {
+  if (!assessResult?.normalizedTraits) return [];
+  // raw 0-1 values (not the ×100 version)
+  const rawTraits = typeof assessResult.normalizedTraits === "object"
+    ? Object.fromEntries(
+        Object.entries(assessResult.normalizedTraits).map(([k, v]) => [k, (v as number) / 100])
+      )
+    : {};
+  const careers = [
+    ...(assessResult.top_careers ?? []),
+    ...(assessResult.moderate_careers ?? []),
+  ] as { name: string; domain?: string }[];
+  return deriveSkillsToAcquire(rawTraits, careers);
+}, [assessResult]);
 
   const topCareers = React.useMemo(() => {
     if (!assessResult) return [];

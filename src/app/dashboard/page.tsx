@@ -1,30 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import {
-  Brain, Target, Map, TrendingUp, Award,
-  ArrowRight, Sparkles, CheckCircle2, Clock,
-  Zap, Star, BarChart2,
+  Brain, Target, Building2, Briefcase, TrendingUp,
+  Award, ArrowRight, Sparkles, CheckCircle2,
+  ChevronRight, Map, User, Lightbulb, Star,
+  BookOpen, Zap, Heart, Compass,
 } from "lucide-react";
-import { useUser } from "../context/UserContext"; // adjust path
-import { SkillsToAcquireWidget } from "../../components/SkillsToAcquireWidget";
+import { useUser } from "../context/UserContext";
 
-/* ─── Types ──────────────────────────────────────────────────────────────── */
-interface WidgetConfig { id: string; enabled: boolean; order: number; }
-
-const DEFAULT_WIDGETS: WidgetConfig[] = [
-  { id: "skillSnapshot",  enabled: true,  order: 0 },
-  { id: "skillsToAcquire", enabled: true, order: 1 },
-  { id: "careerMatches",  enabled: true,  order: 2 },
-  { id: "roadmapLinks",   enabled: true,  order: 3 },
-  { id: "quickActions",   enabled: true,  order: 4 },
-  { id: "activityFeed",   enabled: true,  order: 5 },
-  { id: "growthAreas",    enabled: true,  order: 6 },
-];
-
+/* ─── Trait label map ───────────────────────────────────────── */
 const TRAIT_LABELS: Record<string, string> = {
   logical: "Logical Reasoning", analytical: "Analytical Thinking",
   numerical: "Numerical Ability", verbal: "Verbal Ability",
@@ -38,767 +25,941 @@ const TRAIT_LABELS: Record<string, string> = {
   intrinsic_motivation: "Intrinsic Drive", purpose_drive: "Purpose Drive",
   independence: "Independence", depth_focus: "Deep Focus",
 };
-const label = (k: string) =>
+const tlabel = (k: string) =>
   TRAIT_LABELS[k] ?? k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
-/* ─── Animated counter ───────────────────────────────────────────────────── */
-function Counter({ to, duration = 1200 }: { to: number; duration?: number }) {
+const PALETTE      = ["#7c3aed", "#0891b2", "#059669", "#d97706", "#db2777", "#4f46e5"];
+const PALETTE_LIGHT= ["#ede9fe", "#cffafe", "#d1fae5", "#fef3c7", "#fce7f3", "#e0e7ff"];
+
+/* ── Thinking-style personality map ────────────────────────── */
+const STYLE_PERSONALITIES: Record<string, { traits: string[]; icon: string; color: string; bg: string }> = {
+  "Analytical Thinker": {
+    icon: "🔬", color: "#0891b2", bg: "#cffafe",
+    traits: ["Detail-oriented & precise", "Thrives on data and logic", "Methodical problem-solver", "Values accuracy over speed", "Natural at spotting patterns"],
+  },
+  "Creative Visionary": {
+    icon: "🎨", color: "#db2777", bg: "#fce7f3",
+    traits: ["Thinks outside the box", "Highly imaginative", "Comfortable with ambiguity", "Connects unrelated ideas", "Driven by curiosity"],
+  },
+  "Strategic Leader": {
+    icon: "🧭", color: "#7c3aed", bg: "#ede9fe",
+    traits: ["Big-picture thinker", "Natural delegator", "Goal-driven & decisive", "Inspires others easily", "Plans several steps ahead"],
+  },
+  "Empathetic Communicator": {
+    icon: "💬", color: "#059669", bg: "#d1fae5",
+    traits: ["Deeply attuned to others", "Excellent listener", "Builds trust quickly", "Resolves conflict gracefully", "Thrives in collaborative spaces"],
+  },
+  "Practical Executor": {
+    icon: "⚙️", color: "#d97706", bg: "#fef3c7",
+    traits: ["Gets things done reliably", "Action-oriented mindset", "Organised & disciplined", "Focuses on real-world results", "Respects systems and process"],
+  },
+  "Curious Explorer": {
+    icon: "🔭", color: "#4f46e5", bg: "#e0e7ff",
+    traits: ["Loves learning for its own sake", "Questions everything", "Adapts to new environments fast", "Broad knowledge base", "Energised by the unknown"],
+  },
+};
+
+/* ── Default personality for unknown styles ─────────────────── */
+const defaultPersonality = {
+  icon: "✨", color: "#7c3aed", bg: "#ede9fe",
+  traits: ["Unique blend of strengths", "Adaptable across contexts", "Natural problem-solver", "Continuous learner", "Values growth and purpose"],
+};
+
+/* ─── Animated counter ─────────────────────────────────────── */
+function AnimNum({ to, suffix = "" }: { to: number; suffix?: string }) {
   const [val, setVal] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
   useEffect(() => {
-    let start = 0;
-    const step = Math.ceil(to / (duration / 16));
-    const t = setInterval(() => {
-      start = Math.min(start + step, to);
-      setVal(start);
-      if (start >= to) clearInterval(t);
-    }, 16);
-    return () => clearInterval(t);
-  }, [to, duration]);
-  return <>{val}</>;
+    if (!inView) return;
+    let raf: number;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / 1600, 1);
+      setVal(Math.round((1 - Math.pow(1 - p, 3)) * to));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to, inView]);
+  return <span ref={ref}>{val}{suffix}</span>;
 }
 
-/* ─── Skill mini-bar ─────────────────────────────────────────────────────── */
-function MiniBar({ score, color }: { score: number; color: string }) {
-  const [w, setW] = useState(0);
-  useEffect(() => {
-    const t = setTimeout(() => setW(score), 300);
-    return () => clearTimeout(t);
-  }, [score]);
-  return (
-    <div style={{ height: 4, background: "#e2e8f0", borderRadius: 99, overflow: "hidden", flex: 1 }}>
-      <motion.div
-        initial={{ width: 0 }} animate={{ width: `${w}%` }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        style={{ height: "100%", borderRadius: 99, background: color }}
-      />
-    </div>
-  );
-}
+const HR = ({ style = {} }: { style?: React.CSSProperties }) => (
+  <div style={{ height: 1, background: "rgba(0,0,0,0.07)", ...style }} />
+);
 
-/* ─── Card shell ─────────────────────────────────────────────────────────── */
-function Card({ children, style = {}, className = "" }: {
-  children: React.ReactNode; style?: React.CSSProperties; className?: string;
-}) {
-  return (
-    <div className={className} style={{
-      background: "#fff", borderRadius: 20, border: "1px solid #e5e7eb",
-      boxShadow: "0 1px 3px rgba(0,0,0,0.04),0 4px 16px rgba(0,0,0,0.04)",
+const SectionLabel = ({ children, color = "#7c3aed" }: { children: React.ReactNode; color?: string }) => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.57rem", fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase", color }}>
+    <span style={{ display: "inline-block", width: 14, height: 1.5, background: color, borderRadius: 2 }} />
+    {children}
+  </span>
+);
+
+const Card = ({ children, style = {}, hover = false, className = "" }: {
+  children: React.ReactNode; style?: React.CSSProperties; hover?: boolean; className?: string;
+}) => (
+  <motion.div className={className}
+    whileHover={hover ? { y: -3 } : undefined}
+    transition={{ duration: 0.2, ease: "easeOut" }}
+    style={{
+      background: "#ffffff", borderRadius: 20,
+      border: "1px solid rgba(0,0,0,0.08)",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 6px 28px rgba(0,0,0,0.055)",
       overflow: "hidden", ...style,
     }}>
-      {children}
+    {children}
+  </motion.div>
+);
+
+const IconBox = ({ icon, color, bg }: { icon: React.ReactNode; color: string; bg: string }) => (
+  <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: bg, display: "flex", alignItems: "center", justifyContent: "center", color }}>
+    {icon}
+  </div>
+);
+
+function AmbientGlows() {
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+      {[
+        { size: 700, top: "-20%", left: "-15%", color: "rgba(124,58,237,0.04)" },
+        { size: 500, top: "40%", right: "-12%", color: "rgba(8,145,178,0.03)" },
+        { size: 400, bottom: "-10%", left: "30%", color: "rgba(217,119,6,0.03)" },
+      ].map((g, i) => (
+        <motion.div key={i}
+          animate={{ scale: [1, 1.06, 1] }}
+          transition={{ duration: 18 + i * 4, repeat: Infinity, ease: "easeInOut", delay: i * 3 }}
+          style={{ position: "absolute", width: g.size, height: g.size, borderRadius: "50%", background: `radial-gradient(circle, ${g.color} 0%, transparent 68%)`, ...(g as any) }} />
+      ))}
     </div>
   );
 }
 
-/* ─── Section header ─────────────────────────────────────────────────────── */
-function SectionHeader({ icon, title, subtitle, action }: {
-  icon: React.ReactNode; title: string; subtitle?: string; action?: React.ReactNode;
+/* ═══════════════════════════════════════════════════════════════
+   1 · HERO — no card, raw layout, profile on right
+═══════════════════════════════════════════════════════════════ */
+function HeroSection({ name, email, isAssessed, thinkingStyle }: {
+  name: string; email?: string; isAssessed: boolean; thinkingStyle?: string;
 }) {
-  return (
-    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1.1rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {icon}
-        </div>
-        <div>
-          <h3 style={{ fontSize: "0.88rem", fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.01em" }}>{title}</h3>
-          {subtitle && <p style={{ fontSize: "0.68rem", color: "#94a3b8", margin: "0.1rem 0 0" }}>{subtitle}</p>}
-        </div>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-/* ─── Empty state ────────────────────────────────────────────────────────── */
-function EmptyState({ icon, text, link, small = false }: {
-  icon: string; text: string; link?: string; small?: boolean;
-}) {
-  return (
-    <div style={{ textAlign: "center", padding: small ? "1rem 0" : "1.5rem 0" }}>
-      <div style={{ fontSize: small ? 28 : 36, marginBottom: "0.5rem" }}>{icon}</div>
-      <p style={{ fontSize: "0.76rem", color: "#94a3b8", margin: "0 0 0.75rem", lineHeight: 1.5 }}>{text}</p>
-      {link && (
-        <Link href={link}>
-          <motion.button whileTap={{ scale: 0.96 }}
-            style={{ padding: "0.5rem 1.2rem", background: "linear-gradient(135deg,#2563eb,#7c3aed)", color: "#fff", border: "none", borderRadius: 99, fontWeight: 700, fontSize: "0.75rem", cursor: "pointer", fontFamily: "inherit" }}>
-            Get Started →
-          </motion.button>
-        </Link>
-      )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   WIDGET: Existing Skill Snapshot
-   Source: aptitude test → normalizedTraits (score ≥ 50)
-═══════════════════════════════════════════════════════════════════════════ */
-function SkillSnapshot({ existingSkills }: { existingSkills: { key: string; score: number }[] }) {
-  const top = existingSkills.slice(0, 8);
-
-  if (top.length === 0) return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader
-        icon={<Brain size={16} color="#2563eb" />}
-        title="Existing Skillset"
-        subtitle="From your aptitude test"
-      />
-      <EmptyState icon="🧠" text="Take the aptitude test to reveal your existing skills" link="/aptitude" />
-    </Card>
-  );
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const initials = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "U";
+  const personality = thinkingStyle
+    ? (STYLE_PERSONALITIES[thinkingStyle] ?? defaultPersonality)
+    : defaultPersonality;
 
   return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader
-        icon={<Brain size={16} color="#2563eb" />}
-        title="Existing Skillset"
-        subtitle="Skills you already have — from your aptitude test"
-        action={
-          <Link href="/aptitude" style={{ fontSize: "0.68rem", fontWeight: 700, color: "#2563eb", textDecoration: "none" }}>
-            Retake →
-          </Link>
-        }
-      />
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
-        {top.map((s, i) => (
-          <div key={s.key} style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
-            <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#64748b", minWidth: 130, flexShrink: 0 }}>
-              {label(s.key)}
-            </span>
-            <MiniBar
-              score={s.score}
-              color={s.score >= 75 ? "#2563eb" : s.score >= 60 ? "#7c3aed" : "#10b981"}
-            />
-            <span style={{
-              fontSize: "0.68rem", fontWeight: 800,
-              color: s.score >= 75 ? "#2563eb" : s.score >= 60 ? "#7c3aed" : "#10b981",
-              minWidth: 30, textAlign: "right",
+    <div style={{ marginBottom: "2.5rem", padding: "2rem 1rem 0", position: "relative", zIndex: 1 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "2rem", flexWrap: "wrap" }}>
+
+        {/* ── Left: greeting + name ── */}
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <motion.p
+            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+            style={{ fontSize: "0.78rem", color: "rgba(0,0,0,0.38)", margin: "0 0 0.4rem", fontWeight: 500, letterSpacing: "0.04em" }}>
+            {greeting}&nbsp;&nbsp;·&nbsp;&nbsp;
+            {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+          </motion.p>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontSize: "clamp(2.6rem,6vw,4rem)",
+              fontWeight: 700, color: "#080808",
+              margin: "0 0 0.5rem", letterSpacing: "-0.04em", lineHeight: 1.02,
             }}>
-              {s.score}%
-            </span>
+            Hello, {" "}
+            <span className="bg-gradient-to-r from-purple-500 to-pink-500" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{name || "there"}.</span>
+       
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16, duration: 0.5 }}
+            style={{ fontSize: "clamp(0.85rem,1.8vw,0.95rem)", color: "rgba(0,0,0,0.42)", lineHeight: 1.75, margin: "0", maxWidth: "44ch" }}>
+            {isAssessed
+              ? "Your personalised career dashboard is ready. Here's everything about you."
+              : "Discover your thinking style and unlock a career path built entirely around you."}
+          </motion.p>
+
+          {!isAssessed && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24, duration: 0.4 }}>
+              <Link href="/aptitude">
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  style={{
+                    marginTop: "1.2rem", padding: "0.75rem 1.6rem", background: "#7c3aed", color: "#fff",
+                    border: "none", borderRadius: 12, fontWeight: 700, fontSize: "0.84rem",
+                    cursor: "pointer", fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: 7,
+                    boxShadow: "0 4px 18px rgba(124,58,237,0.32)",
+                  }}>
+                  <Sparkles size={14} /> Begin Assessment
+                </motion.button>
+              </Link>
+            </motion.div>
+          )}
+        </div>
+
+        {/* ── Right: user profile card ── */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.18, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          style={{  
+            borderRadius: 70,
+            border: "1px solid rgba(0,0,0,0.09)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.05)",
+            padding: "1.4rem 1.6rem",
+            minWidth: 120, maxWidth: 160,
+            display: "flex", flexDirection: "column", gap: "0.9rem",
+          }}>
+          {/* Avatar */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.2rem" }}>
+            <div style={{
+              width: 100, height: 100, borderRadius: "50%", flexShrink: 0,
+              background: "linear-gradient(135deg, #7c3aed, #ff63f5)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "1.9rem", fontWeight: 800, color: "#fff",
+              fontFamily: "'Fraunces',serif",
+              boxShadow: "0 4px 14px rgba(124,58,237,0.28)",
+            }}>
+              {initials}
+            </div>
           </div>
-        ))}
+
+        </motion.div>
       </div>
-      <div style={{ marginTop: "0.9rem", padding: "0.6rem 0.8rem", background: "#eff6ff", borderRadius: 10, border: "1px solid #bfdbfe" }}>
-        <p style={{ fontSize: "0.68rem", color: "#1d4ed8", fontWeight: 600, margin: 0 }}>
-          ✦ These are traits scoring 50%+ on your aptitude assessment — skills you can leverage right now.
-        </p>
+
+      {/* Decorative separator */}
+      <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.4, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        style={{ height: 1.5, background: "linear-gradient(90deg, #7c3aed, #0891b2, #059669, transparent)", marginTop: "2rem", borderRadius: 2, transformOrigin: "left" }} />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   2 · THINKING STYLE BANNER — full-width immersive
+═══════════════════════════════════════════════════════════════ */
+function ThinkingStyleBanner({ thinkingStyle, thinkingDesc, isAssessed }: {
+  thinkingStyle?: string; thinkingDesc?: string; isAssessed: boolean;
+}) {
+  if (!isAssessed || !thinkingStyle) return null;
+
+  const personality = STYLE_PERSONALITIES[thinkingStyle] ?? defaultPersonality;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      style={{ marginBottom: "1.5rem", position: "relative", overflow: "hidden" }}>
+
+      {/* Banner card — rich gradient bg */}
+      <div style={{
+        borderRadius: 22,
+        background: `linear-gradient(135deg, ${personality.color}18 0%, ${personality.color}08 50%, #ffffff 100%)`,
+        border: `1px solid ${personality.color}28`,
+        boxShadow: `0 4px 32px ${personality.color}14, 0 1px 3px rgba(0,0,0,0.05)`,
+        padding: "2.2rem 2.4rem",
+        position: "relative", overflow: "hidden",
+      }}>
+
+        {/* Background decorative circles */}
+        <div style={{ position: "absolute", top: -60, right: -60, width: 240, height: 240, borderRadius: "50%", background: `radial-gradient(circle, ${personality.color}12 0%, transparent 70%)`, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -40, left: "40%", width: 180, height: 180, borderRadius: "50%", background: `radial-gradient(circle, ${personality.color}08 0%, transparent 70%)`, pointerEvents: "none" }} />
+
+        {/* Large icon watermark */}
+        <div style={{ position: "absolute", right: "2rem", top: "50%", transform: "translateY(-50%)", fontSize: "5rem", opacity: 0.08, userSelect: "none", pointerEvents: "none" }}>
+          {personality.icon}
+        </div>
+
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.9rem" }}>
+            <div style={{ fontSize: "1.6rem" }}>{personality.icon}</div>
+            <div>
+              <SectionLabel color={personality.color}>Your Thinking Style</SectionLabel>
+              <h2 style={{
+                fontFamily: "'Fraunces',serif",
+                fontSize: "clamp(1.4rem,3.5vw,2.2rem)",
+                fontWeight: 700, color: "#0a0a0a",
+                margin: "0.3rem 0 0", letterSpacing: "-0.03em", lineHeight: 1.1,
+              }}>
+                {thinkingStyle}
+              </h2>
+            </div>
+          </div>
+
+          {thinkingDesc && (
+            <p style={{ fontSize: "clamp(0.82rem,1.8vw,0.9rem)", color: "rgba(0,0,0,0.52)", lineHeight: 1.85, maxWidth: "60ch", margin: "0 0 1.4rem" }}>
+              {thinkingDesc}
+            </p>
+          )}
+
+          {/* Personality traits row */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            {personality.traits.map((trait, i) => (
+              <motion.div key={i}
+                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 + i * 0.07, type: "spring", stiffness: 260, damping: 20 }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: "#fff",
+                  border: `1px solid ${personality.color}25`,
+                  borderRadius: 99, padding: "0.38rem 0.85rem",
+                  boxShadow: `0 1px 4px rgba(0,0,0,0.06)`,
+                }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: personality.color, flexShrink: 0 }} />
+                <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "rgba(0,0,0,0.68)" }}>{trait}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3 · STAT CARDS
+═══════════════════════════════════════════════════════════════ */
+function StatCards({ topCareers }: { topCareers: string[] }) {
+  const cards = [
+    { icon: <Target size={16} />, label: "Career Matches", value: topCareers.length, suffix: "", sub: "Personalised for you", href: "/explore", accent: "#7c3aed", lightBg: "#ede9fe" },
+    { icon: <Building2 size={16} />, label: "Institutes", value: 120, suffix: "+", sub: "Colleges & universities", href: "/institutes", accent: "#0891b2", lightBg: "#cffafe" },
+    { icon: <Briefcase size={16} />, label: "Careers to Explore", value: 900, suffix: "+", sub: "O*NET verified database", href: "/explore", accent: "#059669", lightBg: "#d1fae5" },
+  ];
+  return (
+    <div className="stat-grid" style={{ display: "grid", gap: "1rem", marginBottom: "1.5rem" }}>
+      {cards.map((c, i) => (
+        <Link key={i} href={c.href} style={{ textDecoration: "none" }}>
+          <motion.div
+            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 + i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -4 }}
+            style={{
+              background: "#fff", borderRadius: 18,
+              border: "1px solid rgba(0,0,0,0.07)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 6px 24px rgba(0,0,0,0.05)",
+              padding: "1.5rem 1.4rem", cursor: "pointer", position: "relative", overflow: "hidden",
+            }}>
+            <div style={{ position: "absolute", top: -28, right: -28, width: 110, height: 110, borderRadius: "50%", background: `radial-gradient(circle, ${c.lightBg} 0%, transparent 70%)`, pointerEvents: "none" }} />
+            <IconBox icon={c.icon} color={c.accent} bg={c.lightBg} />
+            <div style={{ marginTop: "1.1rem" }}>
+              <div style={{ fontSize: "clamp(1.8rem,3.5vw,2.4rem)", fontWeight: 800, fontFamily: "'Fraunces',serif", color: c.accent, lineHeight: 1, letterSpacing: "-0.03em" }}>
+                <AnimNum to={c.value} suffix={c.suffix} />
+              </div>
+              <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#111", marginTop: "0.32rem" }}>{c.label}</div>
+              <div style={{ fontSize: "0.61rem", color: "rgba(0,0,0,0.33)", marginTop: "0.18rem", display: "flex", alignItems: "center", gap: 3 }}>
+                {c.sub} <ArrowRight size={9} />
+              </div>
+            </div>
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2.5, background: c.accent, opacity: 0.12 }} />
+          </motion.div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4A · SKILLSET — HORIZONTAL BAR CHART
+═══════════════════════════════════════════════════════════════ */
+function SkillSnapshotCard({ existingSkills }: { existingSkills: { key: string; score: number }[] }) {
+  const top = existingSkills.slice(0, 7);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+
+  return (
+    <Card hover>
+      <div style={{ padding: "1.5rem 1.5rem 1.2rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <IconBox icon={<Brain size={15} />} color="#7c3aed" bg="#ede9fe" />
+            <div>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#0a0a0a" }}>Existing Skillset</div>
+              <div style={{ fontSize: "0.59rem", color: "rgba(0,0,0,0.34)", marginTop: 1 }}>From aptitude assessment</div>
+            </div>
+          </div>
+          <Link href="/aptitude" style={{ fontSize: "0.61rem", fontWeight: 700, color: "#7c3aed", textDecoration: "none", display: "flex", alignItems: "center", gap: 2 }}>
+            Retake <ChevronRight size={10} />
+          </Link>
+        </div>
+        <HR />
+      </div>
+
+      <div ref={ref} style={{ padding: "0 1.5rem 1.5rem" }}>
+        {top.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "2rem 0" }}>
+            <div style={{ fontSize: "2.2rem", marginBottom: "0.6rem" }}>🧠</div>
+            <p style={{ fontSize: "0.75rem", color: "rgba(0,0,0,0.38)", margin: "0 0 1rem", lineHeight: 1.6 }}>Take the assessment to reveal your skills</p>
+            <Link href="/aptitude">
+              <motion.button whileTap={{ scale: 0.97 }} style={{ padding: "0.5rem 1.1rem", background: "#ede9fe", color: "#7c3aed", border: "none", borderRadius: 99, fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Get Started →
+              </motion.button>
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Axis ticks */}
+            <div style={{ display: "flex", paddingLeft: 114, marginBottom: "0.45rem" }}>
+              {[0, 25, 50, 75, 100].map(v => (
+                <div key={v} style={{ flex: 1, textAlign: v === 0 ? "left" : "right" }}>
+                  <span style={{ fontSize: "0.5rem", color: "rgba(0,0,0,0.2)", fontWeight: 600 }}>{v > 0 ? v : ""}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+              {top.map((s, i) => {
+                const color = PALETTE[i % PALETTE.length];
+                return (
+                  <div key={s.key} style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                    <span style={{ fontSize: "0.63rem", fontWeight: 600, color: "rgba(0,0,0,0.52)", width: 106, flexShrink: 0, textAlign: "right", lineHeight: 1.3 }}>
+                      {tlabel(s.key)}
+                    </span>
+                    <div style={{ flex: 1, height: 9, background: "#f3f4f6", borderRadius: 99, overflow: "hidden", position: "relative" }}>
+                      {[25, 50, 75].map(pct => (
+                        <div key={pct} style={{ position: "absolute", left: `${pct}%`, top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.07)", zIndex: 0 }} />
+                      ))}
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: inView ? `${s.score}%` : "0%" }}
+                        transition={{ duration: 1.9, delay: i * 0.13, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ position: "relative", zIndex: 1, height: "100%", borderRadius: 99, background: `linear-gradient(90deg, ${color}99, ${color})`, boxShadow: `0 0 8px ${color}30` }}
+                      />
+                    </div>
+                    <span style={{ fontSize: "0.64rem", fontWeight: 800, color, width: 32, textAlign: "right", flexShrink: 0 }}>
+                      {s.score}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: "1.2rem", padding: "0.55rem 0.85rem", background: "#f5f3ff", borderRadius: 10, border: "1px solid #e9d5ff" }}>
+              <p style={{ fontSize: "0.59rem", color: "#7c3aed", fontWeight: 700, margin: 0 }}>✦ Traits scoring 50%+ on your assessment</p>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );
 }
 
-/* ─── Widget: Growth Areas (low aptitude scores) ─────────────────────────── */
-function GrowthAreasWidget({ needsGainSkills, skillMap }: {
-  needsGainSkills: string[]; skillMap: Record<string, number>;
-}) {
+/* ═══════════════════════════════════════════════════════════════
+   4B · CAREER MATCHES
+═══════════════════════════════════════════════════════════════ */
+function CareerMatchesCard({ topCareers, assessResult }: { topCareers: string[]; assessResult: any }) {
+  const topCount = assessResult?.top_careers?.length ?? 0;
+  return (
+    <Card hover>
+      <div style={{ padding: "1.5rem 1.5rem 1.2rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <IconBox icon={<Award size={15} />} color="#0891b2" bg="#cffafe" />
+            <div>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#0a0a0a" }}>Top Career Matches</div>
+              <div style={{ fontSize: "0.59rem", color: "rgba(0,0,0,0.34)", marginTop: 1 }}>Personalised for you</div>
+            </div>
+          </div>
+          <Link href="/explore" style={{ fontSize: "0.61rem", fontWeight: 700, color: "#0891b2", textDecoration: "none", display: "flex", alignItems: "center", gap: 2 }}>
+            Explore all <ChevronRight size={10} />
+          </Link>
+        </div>
+        <HR />
+      </div>
+      <div style={{ padding: "0 1.5rem 1.5rem" }}>
+        {topCareers.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "2rem 0" }}>
+            <div style={{ fontSize: "2.2rem", marginBottom: "0.6rem" }}>🎯</div>
+            <p style={{ fontSize: "0.75rem", color: "rgba(0,0,0,0.38)", margin: "0 0 1rem" }}>Complete assessment to see your matches</p>
+            <Link href="/aptitude">
+              <motion.button whileTap={{ scale: 0.97 }} style={{ padding: "0.5rem 1.1rem", background: "#cffafe", color: "#0891b2", border: "none", borderRadius: 99, fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Get Started →
+              </motion.button>
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.44rem" }}>
+            {topCareers.slice(0, 7).map((name, i) => (
+              <motion.div key={i}
+                initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.06 + i * 0.05 }}
+                whileHover={{ x: 3 }}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "0.68rem 0.9rem", borderRadius: 12,
+                  background: i < topCount ? "#f5f3ff" : "#fafafa",
+                  border: `1px solid ${i < topCount ? "#e9d5ff" : "rgba(0,0,0,0.06)"}`,
+                }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: PALETTE[i % PALETTE.length], flexShrink: 0 }} />
+                  <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#111" }}>{name}</span>
+                </div>
+                <span style={{ fontSize: "0.55rem", fontWeight: 800, letterSpacing: "0.06em", borderRadius: 99, padding: "2px 8px", background: i < topCount ? "#ede9fe" : "#f3f4f6", color: i < topCount ? "#7c3aed" : "rgba(0,0,0,0.32)" }}>
+                  {i < topCount ? "TOP MATCH" : "GOOD FIT"}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5 · SKILLS BANNER — Skills to Acquire from assessment
+═══════════════════════════════════════════════════════════════ */
+function SkillsBanner({ isAssessed, fallbackSkills }: { isAssessed: boolean; fallbackSkills: string[] }) {
+  const skills = fallbackSkills.slice(0, 6);
+
+  return (
+    <Card style={{ marginBottom: "1.5rem", position: "relative", overflow: "hidden" }}>
+      {/* Top accent bar */}
+      <div style={{ height: 3, background: "linear-gradient(90deg, #d97706, #f59e0b, #fbbf24)", flexShrink: 0 }} />
+
+      {/* Subtle dot-grid bg */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px)",
+        backgroundSize: "22px 22px", pointerEvents: "none", borderRadius: 20,
+      }} />
+
+      <div style={{ padding: "2rem 2.2rem", position: "relative" }}>
+        {/* Header row */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem", marginBottom: "1.6rem" }}>
+          <div>
+            <SectionLabel color="#d97706">Your Growth Roadmap</SectionLabel>
+            <h3 style={{
+              fontFamily: "'Fraunces',serif",
+              fontSize: "clamp(1.15rem,2.8vw,1.6rem)",
+              fontWeight: 700, color: "#0a0a0a",
+              margin: "0.45rem 0 0.3rem", letterSpacing: "-0.025em",
+            }}>
+              Skills to Acquire
+            </h3>
+            <p style={{ fontSize: "0.68rem", color: "rgba(0,0,0,0.38)", margin: 0, lineHeight: 1.6 }}>
+              {isAssessed
+                ? "Identified from your aptitude gaps — build these to unlock your top career matches"
+                : "Complete your assessment to get a personalised skill roadmap"}
+            </p>
+          </div>
+
+          {isAssessed && (
+            <Link href="/roadmaps">
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "0.55rem 1.1rem", background: "#fffbeb",
+                  border: "1px solid #fde68a", borderRadius: 10,
+                  cursor: "pointer", fontSize: "0.7rem", fontWeight: 700,
+                  color: "#b45309", textDecoration: "none",
+                }}>
+                <Map size={12} /> View Full Roadmap
+              </motion.div>
+            </Link>
+          )}
+        </div>
+
+        {/* Skills grid or empty state */}
+        {skills.length > 0 ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))", gap: "0.75rem" }}>
+              {skills.map((skill, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 + i * 0.07, type: "spring", stiffness: 260, damping: 20 }}
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "0.65rem",
+                    background: "#fff",
+                    border: `1px solid ${PALETTE[i % PALETTE.length]}22`,
+                    borderRadius: 14, padding: "0.8rem 1rem",
+                    boxShadow: `0 2px 10px ${PALETTE[i % PALETTE.length]}10`,
+                    position: "relative", overflow: "hidden",
+                  }}>
+                  {/* Soft color wash in corner */}
+                  <div style={{
+                    position: "absolute", top: -16, right: -16,
+                    width: 60, height: 60, borderRadius: "50%",
+                    background: PALETTE_LIGHT[i % PALETTE_LIGHT.length],
+                    opacity: 0.6, pointerEvents: "none",
+                  }} />
+                  {/* Numbered badge */}
+                  <div style={{
+                    width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                    background: PALETTE[i % PALETTE.length],
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "0.58rem", fontWeight: 800, color: "#fff",
+                    boxShadow: `0 2px 6px ${PALETTE[i % PALETTE.length]}40`,
+                    position: "relative",
+                  }}>
+                    {i + 1}
+                  </div>
+                  <span style={{
+                    fontSize: "0.76rem", fontWeight: 700,
+                    color: PALETTE[i % PALETTE.length],
+                    lineHeight: 1.3, position: "relative",
+                  }}>
+                    {skill}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Footer callout */}
+            <div style={{
+              marginTop: "1.2rem", padding: "0.65rem 1rem",
+              background: "#fffbeb", borderRadius: 10,
+              border: "1px solid #fde68a",
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <span style={{ fontSize: "0.9rem" }}>💡</span>
+              <p style={{ fontSize: "0.61rem", color: "#92400e", fontWeight: 700, margin: 0 }}>
+                These skills are prioritised by order — start with #1 and work your way down for maximum career impact.
+              </p>
+            </div>
+          </>
+        ) : (
+          <div style={{ textAlign: "center", padding: "2rem 0" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🗺️</div>
+            <p style={{ fontSize: "0.83rem", color: "rgba(0,0,0,0.3)", fontStyle: "italic", margin: "0 0 1.2rem", lineHeight: 1.7 }}>
+              Complete your assessment to unlock a personalised skill roadmap built just for you.
+            </p>
+            <Link href="/aptitude">
+              <motion.button whileTap={{ scale: 0.97 }}
+                style={{
+                  padding: "0.65rem 1.4rem", background: "#fef3c7",
+                  color: "#b45309", border: "1px solid #fde68a",
+                  borderRadius: 10, fontSize: "0.75rem", fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>
+                Begin Assessment →
+              </motion.button>
+            </Link>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6A · GROWTH AREAS — FIXED DONUT CHART
+═══════════════════════════════════════════════════════════════ */
+function GrowthCard({ needsGainSkills, skillMap }: { needsGainSkills: string[]; skillMap: Record<string, number> }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+
   if (needsGainSkills.length === 0 && Object.keys(skillMap).length > 0) return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader icon={<CheckCircle2 size={16} color="#22c55e" />} title="Aptitude Growth Areas" />
-      <div style={{ textAlign: "center", padding: "1.2rem 0" }}>
-        <CheckCircle2 size={28} color="#22c55e" style={{ marginBottom: 8 }} />
-        <p style={{ fontSize: "0.78rem", color: "#64748b", margin: 0 }}>
-          All aptitude traits score above 50% — great work!
-        </p>
+    <Card style={{ padding: "2rem 1.5rem" }}>
+      <div style={{ textAlign: "center" }}>
+        <CheckCircle2 size={34} color="#059669" style={{ marginBottom: 10 }} />
+        <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "rgba(0,0,0,0.48)", margin: 0 }}>All traits above 50% — excellent!</p>
       </div>
     </Card>
   );
 
   if (needsGainSkills.length === 0) return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader icon={<TrendingUp size={16} color="#f59e0b" />} title="Aptitude Growth Areas" />
-      <EmptyState icon="📈" text="Complete the assessment to discover growth areas" link="/aptitude" small />
-    </Card>
-  );
-
-  return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader
-        icon={<TrendingUp size={16} color="#f59e0b" />}
-        title="Aptitude Growth Areas"
-        subtitle="Traits below 50% — worth developing"
-      />
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.7rem" }}>
-        {needsGainSkills.slice(0, 5).map((k, i) => (
-          <div key={k} style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
-            <div style={{ width: 26, height: 26, borderRadius: 8, background: "#fef3c7", border: "1px solid #fde68a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 11, fontWeight: 800, color: "#92400e" }}>
-              {i + 1}
-            </div>
-            <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "#64748b", minWidth: 110, flexShrink: 0 }}>
-              {label(k)}
-            </span>
-            <MiniBar score={skillMap[k] ?? 0} color="#f59e0b" />
-            <span style={{ fontSize: "0.66rem", fontWeight: 800, color: "#d97706", minWidth: 28, textAlign: "right" }}>
-              {skillMap[k] ?? 0}%
-            </span>
+    <Card>
+      <div style={{ padding: "1.5rem 1.5rem 1.2rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.1rem" }}>
+          <IconBox icon={<TrendingUp size={15} />} color="#d97706" bg="#fef3c7" />
+          <div>
+            <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#0a0a0a" }}>Growth Areas</div>
+            <div style={{ fontSize: "0.59rem", color: "rgba(0,0,0,0.34)", marginTop: 1 }}>Traits below 50%</div>
           </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-/* ─── Widget: Career Matches ─────────────────────────────────────────────── */
-function CareerMatchesWidget({ topCareers, assessResult }: {
-  topCareers: string[]; assessResult: any;
-}) {
-  if (topCareers.length === 0) return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader icon={<Award size={16} color="#7c3aed" />} title="Career Matches" />
-      <EmptyState icon="🎯" text="Complete the assessment to see your top career matches" link="/aptitude" />
-    </Card>
-  );
-
-  const topCount = assessResult?.top_careers?.length ?? 0;
-  return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader
-        icon={<Award size={16} color="#7c3aed" />}
-        title="Your Top Career Matches"
-        action={
-          <Link href="/explore" style={{ fontSize: "0.68rem", fontWeight: 700, color: "#7c3aed", textDecoration: "none" }}>
-            Explore all →
-          </Link>
-        }
-      />
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
-        {topCareers.slice(0, 6).map((name, i) => (
-          <motion.div
-            key={i} whileHover={{ x: 4 }}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "0.6rem 0.8rem",
-              background: i < topCount ? "linear-gradient(135deg,#eff6ff,#f5f3ff)" : "#f8fafc",
-              borderRadius: 10,
-              border: i < topCount ? "1px solid #bfdbfe" : "1px solid #f1f5f9",
-              cursor: "default", transition: "background 0.2s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 14 }}>{i < topCount ? "⭐" : "◆"}</span>
-              <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#0f172a" }}>{name}</span>
-            </div>
-            <span style={{
-              fontSize: "0.62rem", fontWeight: 700,
-              color: i < topCount ? "#2563eb" : "#94a3b8",
-              background: i < topCount ? "#dbeafe" : "#f1f5f9",
-              borderRadius: 99, padding: "2px 8px",
-            }}>
-              {i < topCount ? "Top Match" : "Good Fit"}
-            </span>
-          </motion.div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-/* ─── Widget: Roadmap Links ──────────────────────────────────────────────── */
-function RoadmapLinksWidget({ topCareers }: { topCareers: string[] }) {
-  return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader
-        icon={<Map size={16} color="#10b981" />}
-        title="Career Roadmaps"
-        subtitle="Step-by-step paths for your goals"
-      />
-      {topCareers.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-          {topCareers.slice(0, 6).map((name, i) => (
-            <Link
-              key={i}
-              href={`/roadmaps?career=${encodeURIComponent(name)}`}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "0.45rem 0.9rem", background: "#f0fdf4",
-                border: "1.5px solid #a7f3d0", borderRadius: 99,
-                fontSize: "0.73rem", fontWeight: 700, color: "#065f46",
-                textDecoration: "none", transition: "all 0.2s",
-              }}
-            >
-              <ArrowRight size={10} /> {name}
-            </Link>
-          ))}
         </div>
-      ) : (
-        <EmptyState
-          icon="🗺"
-          text="Complete your assessment to unlock personalised roadmaps"
-          link="/aptitude"
-          small
-        />
-      )}
+        <HR />
+      </div>
+      <div style={{ padding: "0 1.5rem 1.5rem", textAlign: "center" }}>
+        <div style={{ fontSize: "2.2rem", marginBottom: "0.6rem" }}>📈</div>
+        <p style={{ fontSize: "0.75rem", color: "rgba(0,0,0,0.38)", margin: "0 0 1rem" }}>Complete assessment to discover growth areas</p>
+        <Link href="/aptitude">
+          <motion.button whileTap={{ scale: 0.97 }} style={{ padding: "0.5rem 1.1rem", background: "#fef3c7", color: "#b45309", border: "none", borderRadius: 99, fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            Get Started →
+          </motion.button>
+        </Link>
+      </div>
     </Card>
   );
-}
 
-/* ─── Widget: Quick Actions ──────────────────────────────────────────────── */
-function QuickActionsWidget({ isAssessed }: { isAssessed: boolean }) {
-  const actions = [
-    { icon: "🧠", title: "Aptitude Test",   desc: isAssessed ? "Retake the test" : "Start your assessment",  href: "/aptitude",   color: "#eff6ff", border: "#bfdbfe", text: "#1d4ed8" },
-    { icon: "🎯", title: "Explore Careers", desc: isAssessed ? "See your matches"  : "Browse all careers",    href: "/explore",    color: "#f5f3ff", border: "#ddd6fe", text: "#5b21b6" },
-    { icon: "🏛",  title: "Find Colleges",  desc: "Institutes that fit your goals",                           href: "/institutes", color: "#ecfdf5", border: "#a7f3d0", text: "#065f46" },
-    { icon: "🗺",  title: "Career Roadmaps",desc: "Step-by-step guidance",                                    href: "/roadmaps",   color: "#fff7ed", border: "#fed7aa", text: "#c2410c" },
-    { icon: "👥",  title: "Find Mentors",   desc: "Connect with industry experts",                            href: "/mentors",    color: "#fff1f2", border: "#fecdd3", text: "#be123c" },
-    { icon: "👤",  title: "Your Profile",   desc: "View & edit your profile",                                 href: "/profile",    color: "#f8fafc", border: "#e2e8f0", text: "#334155" },
-  ];
+  const skills = needsGainSkills.slice(0, 6);
+
+  /* ── Fixed pie math ──────────────────────────────────────────
+     We assign a FIXED equal slice per skill (so visuals look clean),
+     but label each with its actual score. Alternatively if you want
+     proportional slices based on scores, replace `equalFrac` with
+     `score / total`. Both approaches are shown below — using equal
+     slices so the donut is always legible regardless of tiny scores.
+  ─────────────────────────────────────────────────────────────── */
+  const R = 52, CX = 70, CY = 70, strokeW = 18;
+  const circumference = 2 * Math.PI * R;
+  const gapDeg = 4; // gap between slices in degrees
+  const gapLen = (gapDeg / 360) * circumference;
+  const totalSlices = skills.length;
+  const sliceLen = (circumference - totalSlices * gapLen) / totalSlices;
+
+  type Seg = { key: string; score: number; color: string; lightBg: string; sliceLen: number; offset: number };
+  const segs: Seg[] = skills.map((k, i) => ({
+    key: k,
+    score: skillMap[k] ?? 0,
+    color: PALETTE[i % PALETTE.length],
+    lightBg: PALETTE_LIGHT[i % PALETTE_LIGHT.length],
+    sliceLen,
+    // Each slice starts after: i * (sliceLen + gapLen), converted to dashOffset
+    // dashOffset = circumference - start position (SVG draws clockwise from 3 o'clock, we rotate -90 to start at 12)
+    offset: circumference - i * (sliceLen + gapLen),
+  }));
 
   return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader icon={<Zap size={16} color="#f59e0b" />} title="Quick Actions" />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.65rem" }}>
-        {actions.map(a => (
-          <Link key={a.href} href={a.href} style={{ textDecoration: "none" }}>
-            <motion.div
-              whileHover={{ y: -3, boxShadow: `0 8px 24px ${a.border}80` }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                padding: "0.9rem", background: a.color,
-                border: `1.5px solid ${a.border}`, borderRadius: 14,
-                cursor: "pointer", transition: "box-shadow 0.2s",
-              }}
-            >
-              <div style={{ fontSize: 22, marginBottom: "0.4rem" }}>{a.icon}</div>
-              <p style={{ fontSize: "0.75rem", fontWeight: 800, color: a.text, margin: "0 0 0.15rem" }}>{a.title}</p>
-              <p style={{ fontSize: "0.63rem", color: "#94a3b8", margin: 0, lineHeight: 1.4 }}>{a.desc}</p>
+    <Card hover>
+      <div style={{ padding: "1.5rem 1.5rem 1.2rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <IconBox icon={<TrendingUp size={15} />} color="#d97706" bg="#fef3c7" />
+            <div>
+              <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#0a0a0a" }}>Growth Areas</div>
+              <div style={{ fontSize: "0.59rem", color: "rgba(0,0,0,0.34)", marginTop: 1 }}>Traits below 50% · needs attention</div>
+            </div>
+          </div>
+          <span style={{ fontSize: "0.55rem", fontWeight: 800, letterSpacing: "0.08em", color: "#d97706", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 99, padding: "3px 9px" }}>
+            DEVELOP
+          </span>
+        </div>
+        <HR />
+      </div>
+
+      <div ref={ref} style={{ padding: "0 1.5rem 1.5rem", display: "flex", alignItems: "center", gap: "1.4rem" }}>
+        {/* ── Donut SVG ── */}
+        <div style={{ flexShrink: 0 }}>
+          <svg width={140} height={140} viewBox="0 0 140 140">
+            {/* Background ring */}
+            <circle cx={CX} cy={CY} r={R} fill="none" stroke="#f3f4f6" strokeWidth={strokeW} />
+
+            {segs.map((seg, i) => (
+              <circle
+                key={seg.key}
+                cx={CX} cy={CY} r={R}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={strokeW - 1}
+                strokeLinecap="round"
+                /* dasharray: visible slice length | rest of circumference (gap + other slices) */
+                strokeDasharray={`${inView ? seg.sliceLen : 0} ${circumference}`}
+                strokeDashoffset={seg.offset}
+                style={{
+                  transition: `stroke-dasharray 2s cubic-bezier(0.16,1,0.3,1) ${i * 160}ms`,
+                  transform: "rotate(-90deg)",
+                  transformOrigin: `${CX}px ${CY}px`,
+                  filter: `drop-shadow(0 0 4px ${seg.color}40)`,
+                }}
+              />
+            ))}
+
+            {/* Centre label */}
+            <text x={CX} y={CY - 7} textAnchor="middle" fill="rgba(0,0,0,0.35)" fontSize="7.5" fontWeight="700" fontFamily="DM Sans,sans-serif" letterSpacing="0.1em">NEEDS</text>
+            <text x={CX} y={CY + 6} textAnchor="middle" fill="rgba(0,0,0,0.35)" fontSize="7.5" fontWeight="700" fontFamily="DM Sans,sans-serif" letterSpacing="0.1em">GROWTH</text>
+          </svg>
+        </div>
+
+        {/* ── Legend ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.52rem", flex: 1 }}>
+          {segs.map((seg, i) => (
+            <motion.div key={seg.key}
+              initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 + i * 0.1, duration: 0.45 }}
+              style={{ display: "flex", alignItems: "center", gap: "0.55rem" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: seg.color, flexShrink: 0 }} />
+              <span style={{ fontSize: "0.67rem", fontWeight: 600, color: "rgba(0,0,0,0.58)", flex: 1 }}>{tlabel(seg.key)}</span>
+              <span style={{ fontSize: "0.63rem", fontWeight: 800, color: seg.color, background: seg.lightBg, borderRadius: 6, padding: "1px 6px" }}>
+                {seg.score}%
+              </span>
             </motion.div>
-          </Link>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-/* ─── Widget: Activity Feed ──────────────────────────────────────────────── */
-function ActivityFeedWidget({ acts }: { acts: any[] }) {
-  const relTime = (ts: any) => {
-    if (!ts) return "";
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    const m = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (m < 60)   return `${m}m ago`;
-    if (m < 1440) return `${Math.floor(m / 60)}h ago`;
-    return `${Math.floor(m / 1440)}d ago`;
-  };
-
-  return (
-    <Card style={{ padding: "1.5rem" }}>
-      <SectionHeader icon={<Clock size={16} color="#64748b" />} title="Recent Activity" />
-      {acts.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-          {acts.slice(0, 5).map((a) => (
-            <div key={a.id} style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#eff6ff", border: "1px solid #bfdbfe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.78rem", flexShrink: 0 }}>
-                {a.icon || "📌"}
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: "0.74rem", fontWeight: 600, color: "#1e293b", margin: "0 0 0.05rem" }}>{a.title}</p>
-                <p style={{ fontSize: "0.64rem", color: "#94a3b8", margin: 0 }}>{relTime(a.date)}</p>
-              </div>
-            </div>
           ))}
         </div>
-      ) : (
-        <p style={{ fontSize: "0.74rem", color: "#94a3b8", textAlign: "center", fontStyle: "italic", padding: "1rem 0" }}>
-          No activity yet. Take the aptitude test to get started!
-        </p>
-      )}
+      </div>
     </Card>
   );
 }
 
-/* ─── Greeting ───────────────────────────────────────────────────────────── */
-function Greeting({ name, isAssessed, thinkingStyle }: {
-  name: string; isAssessed: boolean; thinkingStyle?: string;
+/* ═══════════════════════════════════════════════════════════════
+   6B · PERSONAL NOTE — truly personalised to the user
+═══════════════════════════════════════════════════════════════ */
+function PersonalNoteCard({ assessResult, name, thinkingStyle }: {
+  assessResult: any; name: string; thinkingStyle?: string;
 }) {
-  const hour = new Date().getHours();
-  const time = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  return (
-    <div style={{ marginBottom: "2rem" }}>
-      <h1 style={{
-        fontFamily: "'DM Serif Display',serif",
-        fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 400,
-        color: "#0f172a", margin: "0 0 0.4rem", letterSpacing: "-0.02em",
-      }}>
-        {time},{" "}
-        <span style={{ background: "linear-gradient(135deg,#2563eb,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          {name || "there"}
-        </span>{" "}👋
-      </h1>
-      {isAssessed && thinkingStyle ? (
-        <p style={{ fontSize: "0.88rem", color: "#64748b", margin: 0 }}>
-          Your thinking style is <strong style={{ color: "#2563eb" }}>{thinkingStyle}</strong>. Here's your personalised dashboard.
-        </p>
-      ) : (
-        <p style={{ fontSize: "0.88rem", color: "#64748b", margin: 0 }}>
-          Take the aptitude test to unlock your personalised career dashboard.
-        </p>
-      )}
-    </div>
-  );
-}
+  const firstName = name.split(" ")[0] || "there";
+  const topCareer = assessResult?.top_careers?.[0]?.name;
+  const topSkills = assessResult?.existing_skills?.slice(0, 2)?.map((s: any) => tlabel(s.key)).join(" and ") ?? "";
+  const personality = thinkingStyle ? (STYLE_PERSONALITIES[thinkingStyle] ?? defaultPersonality) : null;
 
-/* ─── Progress banner ────────────────────────────────────────────────────── */
-function ProgressBanner({ isAssessed, progress }: { isAssessed: boolean; progress: number }) {
-  if (isAssessed) return null;
+  /* Build a note that references the user's actual data */
+  let note = "";
+  if (thinkingStyle && topCareer) {
+    note = `${firstName}, as a ${thinkingStyle}, you naturally ${personality?.traits[0]?.toLowerCase() ?? "think differently from the crowd"}. Your profile points clearly toward a future in ${topCareer}${topSkills ? `, and the strengths you already carry — ${topSkills} — put you ahead of where most people start` : ""}. The path ahead isn't about finding who you are; it's about building on what you already know you're capable of.`;
+  } else if (thinkingStyle) {
+    note = `${firstName}, you carry the hallmarks of a ${thinkingStyle} — someone who ${personality?.traits[0]?.toLowerCase() ?? "approaches problems uniquely"}. That's not a small thing. The right career doesn't just use your skills; it amplifies them. Your assessment has revealed something real — now it's time to act on it.`;
+  } else if (topCareer) {
+    note = `${firstName}, your aptitude profile points strongly toward ${topCareer}. The traits you carry aren't just skills — they're the beginning of a career that will actually feel like you. Every data point here exists to help you move with clarity, not guesswork.`;
+  } else {
+    note = `${firstName}, once you complete your assessment, we'll write a note that speaks directly to your strengths, your thinking style, and the careers that are genuinely built for someone like you. It won't be generic — it'll be yours.`;
+  }
+
   return (
-    <div style={{
-      marginBottom: "1.5rem",
-      background: "linear-gradient(135deg,#eff6ff,#f5f3ff)",
-      border: "1.5px solid #bfdbfe", borderRadius: 18,
-      padding: "1.25rem 1.5rem", display: "flex",
-      alignItems: "center", gap: "1.25rem", flexWrap: "wrap",
-    }}>
-      <div style={{ flex: 1 }}>
-        <p style={{ fontWeight: 800, fontSize: "0.88rem", color: "#1e3a8a", margin: "0 0 0.5rem" }}>
-          {progress > 0
-            ? "Complete your aptitude test to unlock full personalisation"
-            : "Take the aptitude test to power your dashboard"}
-        </p>
-        {progress > 0 && (
-          <div style={{ height: 6, background: "#dbeafe", borderRadius: 99, overflow: "hidden", maxWidth: 300 }}>
-            <motion.div
-              initial={{ width: 0 }} animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg,#2563eb,#7c3aed)" }}
-            />
+    <Card style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ height: 3, background: "linear-gradient(90deg,#7c3aed,#0891b2,#059669,#d97706)", flexShrink: 0 }} />
+      <div style={{ padding: "1.5rem", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.1rem" }}>
+          <motion.div
+            animate={{ rotate: [0, 6, -6, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+            style={{ width: 36, height: 36, borderRadius: 10, background: "#d1fae5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+            ✉️
+          </motion.div>
+          <div>
+            <SectionLabel color="#059669">Written for you, {firstName}</SectionLabel>
+            <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "#0a0a0a", marginTop: "0.3rem" }}>A Personal Note</div>
           </div>
-        )}
+        </div>
+
+        <HR style={{ marginBottom: "1.2rem" }} />
+
+        <div style={{ position: "relative", flex: 1 }}>
+          <div style={{ position: "absolute", left: -2, top: -12, fontSize: "3.8rem", lineHeight: 1, color: "rgba(5,150,105,0.06)", fontFamily: "Georgia,serif", userSelect: "none", pointerEvents: "none" }}>"</div>
+          <p style={{ fontSize: "clamp(0.82rem,1.8vw,0.9rem)", lineHeight: 1.95, fontStyle: "italic", fontFamily: "'Fraunces',Georgia,serif", color: "rgba(0,0,0,0.58)", margin: "0 0 1.2rem", paddingLeft: "0.85rem" }}>
+            {note}
+          </p>
+        </div>
+
+        <HR style={{ marginBottom: "0.9rem" }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "0.56rem", fontWeight: 700, color: "rgba(0,0,0,0.2)", textTransform: "uppercase", letterSpacing: "0.13em" }}>Based on your aptitude profile</span>
+          <Link href="/report" style={{ fontSize: "0.65rem", fontWeight: 700, color: "#059669", textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}>
+            Full Report <ChevronRight size={10} />
+          </Link>
+        </div>
       </div>
-      <Link href="/aptitude">
-        <motion.button whileTap={{ scale: 0.96 }}
-          style={{
-            padding: "0.65rem 1.4rem",
-            background: "linear-gradient(135deg,#2563eb,#7c3aed)",
-            color: "#fff", border: "none", borderRadius: 11,
-            fontWeight: 700, fontSize: "0.8rem", cursor: "pointer",
-            fontFamily: "inherit", display: "flex", alignItems: "center",
-            gap: 6, whiteSpace: "nowrap",
-          }}
-        >
-          <Sparkles size={13} /> {progress > 0 ? "Resume Test" : "Start Test"}
-        </motion.button>
-      </Link>
-    </div>
+    </Card>
   );
 }
 
-/* ─── Stats row ──────────────────────────────────────────────────────────── */
-function StatsRow({ skillMap, topCareers, skillsToAcquire }: {
-  skillMap: Record<string, number>; topCareers: string[]; skillsToAcquire: string[];
-}) {
-  const existing = Object.entries(skillMap).filter(([, v]) => v >= 50).length;
-  const stats = [
-    { icon: "🎯", label: "Career Matches",      value: topCareers.length,      color: "#7c3aed", bg: "#f5f3ff",  border: "#ddd6fe" },
-    { icon: "✦",  label: "Existing Skills",      value: existing,               color: "#2563eb", bg: "#eff6ff",  border: "#bfdbfe" },
-    { icon: "◎",  label: "Skills to Acquire",    value: skillsToAcquire.length, color: "#7c3aed", bg: "#faf5ff",  border: "#ddd6fe" },
-    { icon: "⚡",  label: "Growth Areas",         value: Object.entries(skillMap).filter(([, v]) => v < 50).length, color: "#f59e0b", bg: "#fffbeb", border: "#fde68a" },
-  ];
-
+/* ═══════════════════════════════════════════════════════════════
+   7 · CLOSING
+═══════════════════════════════════════════════════════════════ */
+function ClosingNote({ thinkingStyle, name }: { thinkingStyle?: string; name: string }) {
+  const firstName = name.split(" ")[0] || "";
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
-      {stats.map((s, i) => (
-        <motion.div
-          key={s.label}
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            background: "#fff", borderRadius: 18, padding: "1.2rem 1rem",
-            border: `1.5px solid ${s.border}`,
-            boxShadow: `0 2px 12px ${s.border}80`,
-            textAlign: "center", position: "relative", overflow: "hidden",
-          }}
-        >
-          <div style={{ position: "absolute", top: -12, right: -12, width: 60, height: 60, borderRadius: "50%", background: s.bg, opacity: 0.6 }} />
-          <div style={{ fontSize: 22, marginBottom: "0.5rem" }}>{s.icon}</div>
-          <div style={{ fontSize: "1.6rem", fontWeight: 900, color: s.color, fontFamily: "monospace", lineHeight: 1 }}>
-            <Counter to={s.value} />
-          </div>
-          <div style={{ fontSize: "0.68rem", color: "#94a3b8", fontWeight: 600, marginTop: "0.35rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            {s.label}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-/* ─── Widget toggle panel ────────────────────────────────────────────────── */
-function WidgetPanel({ widgets, setWidgets }: {
-  widgets: WidgetConfig[]; setWidgets: (w: WidgetConfig[]) => void;
-}) {
-  const LABELS: Record<string, string> = {
-    skillSnapshot:   "Existing Skillset",
-    skillsToAcquire: "Skills to Acquire",
-    careerMatches:   "Career Matches",
-    roadmapLinks:    "Career Roadmaps",
-    quickActions:    "Quick Actions",
-    activityFeed:    "Recent Activity",
-    growthAreas:     "Aptitude Growth Areas",
-  };
-  const toggle = (id: string) =>
-    setWidgets(widgets.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w));
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-      style={{
-        position: "absolute", top: "100%", right: 0, marginTop: 8,
-        background: "#fff", borderRadius: 16, border: "1.5px solid #e2e8f0",
-        boxShadow: "0 12px 40px rgba(0,0,0,0.12)", padding: "1rem",
-        zIndex: 50, minWidth: 240,
-      }}
-    >
-      <p style={{ fontSize: "0.72rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.75rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-        Customise Dashboard
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.9 }}
+      style={{ textAlign: "center", padding: "3rem 1rem 1.5rem" }}>
+      <div style={{ width: 36, height: 1.5, background: "rgba(0,0,0,0.1)", margin: "0 auto 1.6rem", borderRadius: 2 }} />
+      <p style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: "clamp(0.88rem,2vw,1.05rem)", fontStyle: "italic", color: "rgba(0,0,0,0.26)", lineHeight: 2, maxWidth: "52ch", margin: "0 auto 0.9rem" }}>
+        {thinkingStyle && firstName
+          ? `Every ${thinkingStyle} has a path that's entirely their own, ${firstName} — yours is still unfolding. The best version of your career isn't found; it's built.`
+          : `Your journey is just beginning. The careers, skills, and opportunities waiting for you are closer than you think.`}
       </p>
-      {widgets.map(w => (
-        <label
-          key={w.id}
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid #f1f5f9", cursor: "pointer" }}
-        >
-          <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#334155" }}>{LABELS[w.id]}</span>
-          <div
-            onClick={() => toggle(w.id)}
-            style={{ width: 36, height: 20, borderRadius: 99, background: w.enabled ? "#2563eb" : "#cbd5e1", position: "relative", transition: "background 0.2s", flexShrink: 0 }}
-          >
-            <motion.div
-              animate={{ x: w.enabled ? 18 : 2 }}
-              transition={{ type: "spring", stiffness: 600, damping: 35 }}
-              style={{ position: "absolute", top: 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }}
-            />
-          </div>
-        </label>
-      ))}
+      <p style={{ fontSize: "0.58rem", color: "rgba(0,0,0,0.16)", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase" }}>— WDIG Team</p>
     </motion.div>
   );
 }
 
-/* ─── Profile completeness ───────────────────────────────────────────────── */
-function ProfileStrengthCard({ userData, isAssessed }: {
-  userData: any; isAssessed: boolean;
-}) {
-  const checks = [
-    { label: "Name",           done: !!userData.name },
-    { label: "Bio",            done: !!userData.bio },
-    { label: "Location",       done: !!userData.location },
-    { label: "Career Interests", done: userData.interests.length > 0 },
-    { label: "Aptitude Test",  done: isAssessed },
-  ];
-  const pct = Math.round((checks.filter(c => c.done).length / checks.length) * 100);
-
-  return (
-    <Card style={{ padding: "1.25rem" }}>
-      <SectionHeader icon={<Star size={15} color="#f59e0b" />} title="Profile Strength" />
-      <div style={{ height: 6, background: "#e2e8f0", borderRadius: 99, overflow: "hidden", marginBottom: "0.85rem" }}>
-        <motion.div
-          initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          style={{ height: "100%", borderRadius: 99, background: pct === 100 ? "#22c55e" : "linear-gradient(90deg,#2563eb,#7c3aed)" }}
-        />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-        {checks.map(c => (
-          <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            {c.done
-              ? <CheckCircle2 size={13} color="#22c55e" />
-              : <div style={{ width: 13, height: 13, borderRadius: "50%", border: "1.5px solid #e2e8f0" }} />}
-            <span style={{ fontSize: "0.72rem", color: c.done ? "#334155" : "#94a3b8", fontWeight: c.done ? 600 : 400 }}>
-              {c.label}
-            </span>
-          </div>
-        ))}
-      </div>
-      {pct < 100 && (
-        <Link
-          href="/profile"
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: "0.85rem", padding: "0.5rem", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: "0.72rem", fontWeight: 700, color: "#2563eb", textDecoration: "none" }}
-        >
-          Complete Profile <ArrowRight size={11} />
-        </Link>
-      )}
-    </Card>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MAIN DASHBOARD
-═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════ */
 export default function DashboardPage() {
   const {
-    userData, assessResult, skillMap, needsGainSkills, existingSkills,
-    skillsToAcquire, topCareers, isAssessed, loading,
+    userData, assessResult, skillMap, needsGainSkills,
+    existingSkills, skillsToAcquire, topCareers, isAssessed, loading,
   } = useUser();
 
-  const [acts, setActs]                       = useState<any[]>([]);
-  const [progress, setProgress]               = useState(0);
-  const [widgets, setWidgets]                 = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
-  const [showWidgetPanel, setShowWidgetPanel] = useState(false);
-  const [ready, setReady]                     = useState(false);
-
-  /* Load / persist widget config */
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("dashboardWidgets_v2");
-      if (saved) setWidgets(JSON.parse(saved));
-    } catch { }
-  }, []);
-
-  useEffect(() => {
-    try { localStorage.setItem("dashboardWidgets_v2", JSON.stringify(widgets)); } catch { }
-  }, [widgets]);
-
-  /* Progress from localStorage */
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("aptitudeProgress");
-      if (saved) setProgress(Math.min(Number(saved), 99));
-    } catch { }
-  }, []);
-
-  /* Activity feed */
-  useEffect(() => {
-    if (!userData.email) return;
-    import("firebase/firestore").then(async ({ doc, getDoc }) => {
-      const { db }   = await import("../../../firebase");
-      const { auth } = await import("../../../firebase");
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-      const snap = await getDoc(doc(db, "activities", uid));
-      if (snap.exists()) setActs((snap.data().items || []).slice(0, 5));
-    });
-  }, [userData.email]);
-
+    console.log("skillsToAcquire:", skillsToAcquire);
+  console.log("assessResult:", assessResult);
+  
+  const [ready, setReady] = useState(false);
   useEffect(() => { if (!loading) setTimeout(() => setReady(true), 80); }, [loading]);
 
-  const isEnabled = (id: string) => widgets.find(w => w.id === id)?.enabled ?? true;
-
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f7ff" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f7f7f8" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 36, height: 36, border: "3px solid #bfdbfe", borderTopColor: "#2563eb", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem" }} />
-        <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#1e40af" }}>Loading your dashboard…</p>
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          style={{ width: 36, height: 36, border: "2.5px solid #e9d5ff", borderTopColor: "#7c3aed", borderRadius: "50%", margin: "0 auto 1rem" }} />
+        <p style={{ fontSize: "0.8rem", fontWeight: 500, color: "rgba(0,0,0,0.36)" }}>Loading your dashboard…</p>
       </div>
     </div>
   );
 
+  const thinkingStyle = assessResult?.thinking_style?.primary?.label;
+  const thinkingDesc  = assessResult?.thinking_style?.primary?.description;
+  const firstName = userData.name.split(" ")[0];
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap');
-        @keyframes spin{to{transform:rotate(360deg)}}
-        *{box-sizing:border-box}
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,700;9..144,1,400;9..144,1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+        *, *::before, *::after { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.18); border-radius: 99px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        .stat-grid { grid-template-columns: repeat(3,1fr) !important; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.5rem; align-items: start; }
+        @media (max-width: 720px) {
+          .stat-grid { grid-template-columns: 1fr !important; }
+          .two-col { grid-template-columns: 1fr !important; }
+        }
+        @media (min-width: 460px) and (max-width: 720px) {
+          .stat-grid { grid-template-columns: repeat(2,1fr) !important; }
+        }
       `}</style>
 
-      <div style={{
-        minHeight: "100vh",
-        background: "linear-gradient(160deg,#f0f7ff 0%,#fafbff 40%,#f5f3ff 100%)",
-        fontFamily: "'Sora',sans-serif",
-        opacity: ready ? 1 : 0, transition: "opacity 0.4s ease",
-      }}>
-        {/* Mesh BG */}
-        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: "-15%", right: "-8%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle,rgba(37,99,235,0.05) 0%,transparent 70%)" }} />
-          <div style={{ position: "absolute", bottom: "-8%", left: "-4%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(124,58,237,0.05) 0%,transparent 70%)" }} />
-        </div>
+      <AmbientGlows />
 
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 1080, margin: "0 auto", padding: "2.5rem 1.5rem 5rem" }}>
-
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" , margin: "5rem "}}>
-            <Greeting
-              name={userData.name.split(" ")[0]}
-              isAssessed={isAssessed}
-              thinkingStyle={assessResult?.thinking_style?.primary?.label}
-            />
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <motion.button
-                whileTap={{ scale: 0.96 }}
-                onClick={() => setShowWidgetPanel(p => !p)}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.6rem 1.1rem", background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 11, fontWeight: 700, fontSize: "0.75rem", color: "#334155", cursor: "pointer", fontFamily: "inherit" }}
-              >
-                <BarChart2 size={13} /> Customise
-              </motion.button>
-              <AnimatePresence>
-                {showWidgetPanel && (
-                  <WidgetPanel widgets={widgets} setWidgets={setWidgets} />
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Progress banner */}
-          <ProgressBanner isAssessed={isAssessed} progress={progress} />
-
-          {/* Stats */}
-          <StatsRow skillMap={skillMap} topCareers={topCareers} skillsToAcquire={skillsToAcquire} />
-
-          {/* Widget grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: "1.25rem", alignItems: "start" }}>
-
-            {/* LEFT COLUMN */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
-              {isEnabled("quickActions") && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }}>
-                  <QuickActionsWidget isAssessed={isAssessed} />
-                </motion.div>
-              )}
-
-              {/* ── SKILLS SECTION: existing + to-acquire side by side ── */}
-              {(isEnabled("skillSnapshot") || isEnabled("skillsToAcquire")) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.13, duration: 0.5 }}
-                  style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}
-                >
-                  {isEnabled("skillSnapshot") && (
-                    <SkillSnapshot existingSkills={existingSkills} />
-                  )}
-{isEnabled("skillsToAcquire") && (
-  <SkillsToAcquireWidget
-    isAssessed={isAssessed}
-    fallbackSkills={skillsToAcquire}   // ← was: skillsToAcquire={skillsToAcquire}
-  />
-)}
-                </motion.div>
-              )}
-
-              {isEnabled("careerMatches") && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.5 }}>
-                  <CareerMatchesWidget topCareers={topCareers} assessResult={assessResult} />
-                </motion.div>
-              )}
-
-              {isEnabled("roadmapLinks") && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22, duration: 0.5 }}>
-                  <RoadmapLinksWidget topCareers={topCareers} />
-                </motion.div>
-              )}
-            </div>
-
-            {/* RIGHT COLUMN */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
-              {isEnabled("activityFeed") && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.5 }}>
-                  <ActivityFeedWidget acts={acts} />
-                </motion.div>
-              )}
-
-              {isEnabled("growthAreas") && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17, duration: 0.5 }}>
-                  <GrowthAreasWidget needsGainSkills={needsGainSkills} skillMap={skillMap} />
-                </motion.div>
-              )}
-
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22, duration: 0.5 }}>
-                <ProfileStrengthCard userData={userData} isAssessed={isAssessed} />
-              </motion.div>
-            </div>
-          </div>
-        </div>
+      {/* Warm off-white background + grain */}
+      <div style={{ position: "fixed", inset: 0, zIndex: -1, background: "#f7f7f8" }}>
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E")`,
+          backgroundSize: "200px 200px",
+        }} />
       </div>
+
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: ready ? 1 : 0 }} transition={{ duration: 0.4 }}
+        style={{ position: "relative", zIndex: 1, fontFamily: "'DM Sans', sans-serif", maxWidth: 1060, margin: "0 auto", padding: "5.5rem 1.5rem 4rem" }}>
+
+        {/* 1 · Hero — no card */}
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
+          <HeroSection
+            name={userData.name}
+            email={userData.email}
+            isAssessed={isAssessed}
+            thinkingStyle={thinkingStyle}
+          />
+        </motion.div>
+
+        {/* 2 · Thinking style banner */}
+        <ThinkingStyleBanner thinkingStyle={thinkingStyle} thinkingDesc={thinkingDesc} isAssessed={isAssessed} />
+
+        {/* 3 · Stat cards */}
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.55 }}>
+          <StatCards topCareers={topCareers} />
+        </motion.div>
+
+        {/* 4 · Skillset + Career matches */}
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.19, duration: 0.55 }} className="two-col">
+          <SkillSnapshotCard existingSkills={existingSkills} />
+          <CareerMatchesCard topCareers={topCareers} assessResult={assessResult} />
+        </motion.div>
+
+        {/* 5 · Skills banner */}
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.55 }}>
+          <SkillsBanner isAssessed={isAssessed} fallbackSkills={skillsToAcquire} />
+        </motion.div>
+
+        {/* 6 · Growth + Personal note */}
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.31, duration: 0.55 }} className="two-col">
+          <GrowthCard needsGainSkills={needsGainSkills} skillMap={skillMap} />
+          <PersonalNoteCard assessResult={assessResult} name={userData.name} thinkingStyle={thinkingStyle} />
+        </motion.div>
+
+        {/* 7 · Closing */}
+        <ClosingNote thinkingStyle={thinkingStyle} name={userData.name} />
+
+      </motion.div>
     </>
   );
 }
