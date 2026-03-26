@@ -27,22 +27,22 @@ const T = {
 
 // ── Human-readable label maps ─────────────────────────────────────────────────
 const STAGE_LABELS: Record<string, string> = {
-  school_9_10:    "a Class 9–10 student",
-  school_11_12:   "a Class 11–12 student",
-  ug:             "an undergraduate student",
-  pg:             "a postgraduate student",
-  professional:   "a working professional",
+  school_9_10: "a Class 9–10 student",
+  school_11_12: "a Class 11–12 student",
+  ug: "an undergraduate student",
+  pg: "a postgraduate student",
+  professional: "a working professional",
   career_changer: "someone navigating a career change",
 };
 const FINANCE_LABELS: Record<string, string> = {
   need_income_soon: "need a stable income soon",
-  some_runway:      "have some time before needing income",
-  full_support:     "have full family support on timeline",
+  some_runway: "have some time before needing income",
+  full_support: "have full family support on timeline",
 };
 const PRESSURE_LABELS: Record<string, string> = {
-  high:     "under significant family pressure about your career path",
+  high: "under significant family pressure about your career path",
   moderate: "navigating some family expectations around your career",
-  free:     "fortunate to have full freedom in your career choice",
+  free: "fortunate to have full freedom in your career choice",
 };
 const HORIZON_LABELS: Record<string, string> = {
   "1_2_years": "1–2 years",
@@ -50,20 +50,20 @@ const HORIZON_LABELS: Record<string, string> = {
   "6_8_years": "6–8 years",
 };
 const SUCCESS_LABELS: Record<string, string> = {
-  financial_freedom:   "financial freedom",
-  real_impact:         "making a real impact on the world",
-  being_best:          "being the best at what you do",
-  balance:             "work-life balance and inner peace",
-  solving_problems:    "solving hard problems",
+  financial_freedom: "financial freedom",
+  real_impact: "making a real impact on the world",
+  being_best: "being the best at what you do",
+  balance: "work-life balance and inner peace",
+  solving_problems: "solving hard problems",
   creative_expression: "creative expression and recognition",
 };
 const VISION_LABELS: Record<string, string> = {
-  own_business:   "running your own business",
-  top_company:    "leading a team in a top company",
-  research:       "doing deep research or academia",
-  freelance:      "working independently",
+  own_business: "running your own business",
+  top_company: "leading a team in a top company",
+  research: "doing deep research or academia",
+  freelance: "working independently",
   public_service: "serving the public",
-  figuring_out:   "still figuring out the path",
+  figuring_out: "still figuring out the path",
 };
 
 interface Profile {
@@ -137,7 +137,7 @@ export default function ProfileSnapshot({ uid, isPdf = false }: { uid: string; i
 
   useEffect(() => {
     if (!uid) return;
-    fetch(`http://localhost:5000/api/profile/${uid}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile/${uid}`)
       .then(r => r.json())
       .then(({ profile }) => setProfile(profile || null))
       .catch(() => setProfile(null))

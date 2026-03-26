@@ -258,7 +258,7 @@ const AptitudeTest = () => {
   const [questionAnim, setQuestionAnim] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/questions")
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/questions`)
       .then(res => { if (!res.ok) throw new Error("API failed"); return res.json(); })
       .then(data => setQuestions(data))
       .catch(err => console.error("Fetch error:", err));
@@ -384,7 +384,7 @@ const AptitudeTest = () => {
 
     let mlResult = null;
     try {
-      const res = await fetch("http://localhost:5000/api/predict", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/predict`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers, firebase_uid: auth.currentUser?.uid || null }),
       });
