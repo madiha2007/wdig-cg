@@ -1,24 +1,17 @@
-// export async function GET() {
-//   try {
-//     const res = await fetch("http://localhost:5000/institutes");
-//     const data = await res.json();
-//     return new Response(JSON.stringify(data), { status: 200 });
-//   } catch (err) {
-//     return new Response(JSON.stringify({ error: "Failed to fetch institutes" }), {
-//       status: 500,
-//     });
-//   }
-// }
-
-
 export async function GET() {
   try {
-    const res = await fetch("http://localhost:5000/institutes", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/institutes`, {
       cache: "no-store",
     });
+
+    if (!res.ok) {
+      throw new Error("API failed");
+    }
+
     const data = await res.json();
     return Response.json(data);
   } catch (err) {
+    console.error("API ERROR:", err);
     return Response.json({ error: "Failed to fetch" }, { status: 500 });
   }
 }
