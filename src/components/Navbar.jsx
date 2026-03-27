@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext"; // ← ADDED
 
 const icons = {
   logo:      "/assets/icons/logo.svg",
@@ -94,11 +95,11 @@ function HamburgerIcon({ open }) {
 
 /* ─── Main Navbar ─── */
 export default function Navbar() {
-  const router       = useRouter();
-  const pathname     = usePathname();
+  const router             = useRouter();
+  const pathname           = usePathname();
   const shouldReduceMotion = useReducedMotion();
+  const { user, logout }   = useAuth(); // ← REPLACES useState(null) + sessionStorage useEffect
   const [menuOpen,     setMenuOpen]     = useState(false);
-  const [user,         setUser]         = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isScrolled,   setIsScrolled]   = useState(false);
   const dropdownRef = useRef(null);
@@ -109,22 +110,8 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    try {
-      const storedUser = JSON.parse(sessionStorage.getItem("user"));
-      setUser(storedUser);
-    } catch {}
-
-    const handleStorageChange = () => {
-      try {
-        const updatedUser = JSON.parse(sessionStorage.getItem("user"));
-        setUser(updatedUser);
-      } catch {}
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [pathname]);
+  // ← REMOVED: sessionStorage useEffect (handled by AuthContext)
+  // ← REMOVED: window "storage" event listener (handled by AuthContext)
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -136,15 +123,16 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuOpen]);
 
+  // ← UPDATED: no more manual sessionStorage / dispatchEvent
   const handleLogout = () => {
-    sessionStorage.removeItem("user");
-    setUser(null);
+    logout();
     setUserMenuOpen(false);
     setMenuOpen(false);
-    window.dispatchEvent(new Event("storage"));
     router.push("/login");
   };
 
+  // user?.photoURL  ← Firebase User object uses photoURL (not photo)
+  // user?.email     ← same as before
   const desktopNavLinks = [
     { href: user ? "/dashboard" : "/", icon: icons.home,      label: "Home"            },
     { href: "/explore",                icon: icons.career,    label: "Explore Careers" },
@@ -259,8 +247,8 @@ export default function Navbar() {
                   whileTap={{ scale: 0.93 }}
                   transition={{ type: "spring", stiffness: 380, damping: 18 }}
                 >
-                  {user?.photo ? (
-                    <Image src={user.photo} alt="User Avatar" width={40} height={40} className="object-cover" />
+                  {user?.photoURL ? ( // ← photoURL (Firebase field name)
+                    <Image src={user.photoURL} alt="User Avatar" width={40} height={40} className="object-cover" />
                   ) : (
                     <span className="text-white font-semibold text-sm">
                       {user?.email?.charAt(0)?.toUpperCase()}
@@ -377,8 +365,8 @@ export default function Navbar() {
                     className="flex items-center gap-3 border-b border-violet-100 pb-4 mb-6 hover:opacity-80 transition"
                   >
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-white flex items-center justify-center font-semibold overflow-hidden flex-shrink-0">
-                      {user?.photo ? (
-                        <Image src={user.photo} alt="Avatar" width={44} height={44} className="object-cover" />
+                      {user?.photoURL ? ( // ← photoURL (Firebase field name)
+                        <Image src={user.photoURL} alt="Avatar" width={44} height={44} className="object-cover" />
                       ) : (
                         <span className="text-lg">{user?.email?.charAt(0)?.toUpperCase()}</span>
                       )}
@@ -486,7 +474,6 @@ function NavItem({ href, icon, label }) {
       </motion.span>
       <span className="relative">
         {label}
-        {/* Animated underline sweep */}
         <span className="absolute -bottom-0.5 left-0 h-[1.5px] w-0 bg-gradient-to-r from-violet-500 to-pink-500 rounded-full transition-all duration-300 group-hover:w-full" />
       </span>
     </Link>
