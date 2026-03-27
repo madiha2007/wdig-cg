@@ -39,7 +39,6 @@ function BgCanvas() {
           background: "radial-gradient(circle, rgba(255,180,155,0.26) 0%, transparent 68%)",
         }}
       />
-      {/* Top right lavender */}
       <motion.div
         animate={{ scale: [1, 1.07, 1] }}
         transition={{ duration: 17, repeat: Infinity, ease: "easeInOut", delay: 6 }}
@@ -149,7 +148,50 @@ export default function LoginPage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Nunito:wght@400;500;600;700;800;900&display=swap');
-        
+
+        /* ── Base layout ── */
+        .login-page-wrapper {
+          width: 100%;
+          min-height: 100vh;
+          display: flex;
+          align-items: stretch;
+        }
+
+        /* ── Card container ── */
+        .login-card {
+          width: 100%;
+          max-width: 100vw;
+          border-radius: 28px;
+          overflow: hidden;
+          display: flex;
+          min-height: 100vh;
+          box-shadow: 0 28px 80px rgba(0,0,0,0.16), 0 2px 0 rgba(255,255,255,0.9) inset;
+        }
+
+        /* ── Left panel ── */
+        .left-panel {
+          flex: 0 0 650px;
+          background: #fff;
+          padding: 52px 120px 44px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          border-radius: 28px 0 0 28px;
+        }
+
+        /* ── Right panel ── */
+        .right-panel {
+          flex: 1;
+          position: relative;
+          overflow: hidden;
+          border-radius: 20px;
+          background-image: url('/bg10.jpg');
+          background-size: cover;
+          background-position: center;
+          min-height: 80vh;
+          margin: 90px 40px 30px 0;
+        }
+
         /* ── Inputs ── */
         .login-input {
           width: 100%; height: 52px;
@@ -161,6 +203,7 @@ export default function LoginPage() {
           font-size: 14px; font-weight: 600; color: #1e2a3a;
           outline: none;
           transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+          box-sizing: border-box;
         }
         .login-input:focus {
           border-color: #8b5cf6;
@@ -196,6 +239,9 @@ export default function LoginPage() {
           transform: translateY(-2px);
           box-shadow: 0 14px 40px rgba(109,40,217,0.48);
         }
+        .sign-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
         .sign-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         .sign-btn::after {
           content: '';
@@ -221,6 +267,9 @@ export default function LoginPage() {
           background: #fff;
           box-shadow: 0 6px 22px rgba(0,0,0,0.1);
           transform: translateY(-1px);
+        }
+        .google-btn:active:not(:disabled) {
+          transform: translateY(0);
         }
         .google-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
@@ -251,225 +300,252 @@ export default function LoginPage() {
           font-weight: 600; margin-top: 5px; padding-left: 2px;
         }
 
-        @media (max-width: 720px) {
-          .nav-links { display: none; }
-          .right-panel { display: none !important; }
-          .left-panel { border-radius: 24px !important; }
+        /* ══════════════════════════════════════════
+           RESPONSIVE BREAKPOINTS
+        ══════════════════════════════════════════ */
+
+        /* ── Large tablets (≤1024px) ── */
+        @media (max-width: 1024px) {
+          .left-panel {
+            flex: 0 0 520px;
+            padding: 48px 64px 44px;
+          }
+        }
+
+        /* ── Small tablets / large phones (≤768px) ── */
+        @media (max-width: 768px) {
+          .login-card {
+            border-radius: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+          }
+
+          .left-panel {
+            flex: 1 1 100%;
+            width: 100%;
+            padding: 48px 28px 40px;
+            border-radius: 0;
+            justify-content: flex-start;
+            padding-top: 56px;
+          }
+
+          .right-panel {
+            display: none !important;
+          }
+        }
+
+        /* ── Small phones (≤480px) ── */
+        @media (max-width: 480px) {
+          .left-panel {
+            padding: 40px 20px 36px;
+          }
+
+          .login-input {
+            height: 50px;
+            font-size: 16px; /* Prevents iOS zoom on focus */
+          }
+
+          .sign-btn {
+            height: 50px;
+            font-size: 14px;
+          }
+
+          .google-btn {
+            height: 50px;
+          }
+        }
+
+        /* ── Very small phones (≤360px) ── */
+        @media (max-width: 360px) {
+          .left-panel {
+            padding: 32px 16px 28px;
+          }
+        }
+
+        /* ── Landscape phones ── */
+        @media (max-width: 768px) and (orientation: landscape) {
+          .left-panel {
+            padding-top: 32px;
+            padding-bottom: 32px;
+          }
         }
       `}</style>
 
-      {/* Full-page warm gradient background */}
+      <motion.div
+        className="login-card"
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      >
 
+        {/* ══ LEFT — white form panel ══════════════════════════════ */}
+        <div className="left-panel">
 
-
-
-        {/* ═══ PAGE BODY — below navbar ═══ */}
-
-
-          {/* Card container */}
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              width: "100%", maxWidth: "100vw",
-              borderRadius: 28,
-              overflow: "hidden",
-              display: "flex",
-              minHeight: "100vh",
-              boxShadow: "0 28px 80px rgba(0,0,0,0.16), 0 2px 0 rgba(255,255,255,0.9) inset",
-            }}
-          >
-
-            {/* ══ LEFT — white form panel ══════════════════════════════ */}
-            <div
-              className="left-panel"
-              style={{
-                flex: "0 0 650px",
-                background: "#fff",
-                padding: "52px 120px 44px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                borderRadius: "28px 0 0 28px",
-              }}
-            >
-
-              {/* Heading */}
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.4 }}>
-                <h1 style={{
-                  fontFamily: "'DM Serif Display', serif",
-                  fontSize: 34, fontWeight: 400, color: "#0a0a0a",
-                  lineHeight: 1.12, letterSpacing: "-0.025em",
-                  marginBottom: 10,
-                }}>
-                  Welcome Back!
-                </h1>
-                <p style={{ fontSize: 14, color: "#6b7280", fontWeight: 500, lineHeight: 1.65, marginBottom: 30 }}>
-                  Enter your email and password to access your account.
-                </p>
-              </motion.div>
-
-              {/* Google */}
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24, duration: 0.4 }}>
-                <button className="google-btn" onClick={handleGoogle} disabled={gLoading || loading}>
-                  <svg width="19" height="19" viewBox="0 0 48 48" fill="none">
-                    <path d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z" fill="#FFC107"/>
-                    <path d="M6.3 14.7l7 5.1C15.2 16.6 19.3 14 24 14c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.6 7.4 6.3 14.7z" fill="#FF3D00"/>
-                    <path d="M24 46c5.5 0 10.5-1.8 14.4-5l-6.7-5.5C29.8 37.3 27 38 24 38c-6 0-11.1-4-12.9-9.5l-7 5.4C7.5 41.8 15.2 46 24 46z" fill="#4CAF50"/>
-                    <path d="M44.5 20H24v8.5h11.8c-.9 2.8-2.8 5.1-5.2 6.6l6.7 5.5c3.8-3.5 6.2-8.8 6.2-15.6 0-1.3-.2-2.7-.5-4z" fill="#1976D2"/>
-                  </svg>
-                  <span>{gLoading ? "Signing in…" : "Sign in with Google"}</span>
-                </button>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.28 }}
-                className="divider">or sign in with email</motion.div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} noValidate>
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.4 }}
-                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                  {/* Email */}
-                  <div>
-                    <div style={{ position: "relative" }}>
-                      <div style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", color: "#b8c4d0", pointerEvents: "none" }}>
-                        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                          <polyline points="22,6 12,13 2,6"/>
-                        </svg>
-                      </div>
-                      <input
-                        name="email" type="email" value={form.email}
-                        onChange={handleChange}
-                        placeholder="Email address"
-                        className={`login-input${errors.email ? " err" : ""}`}
-                        autoComplete="email"
-                      />
-                    </div>
-                    <AnimatePresence>
-                      {errors.email && (
-                        <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="err-txt">
-                          {errors.email}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <div style={{ position: "relative" }}>
-                      <div style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", color: "#b8c4d0", pointerEvents: "none" }}>
-                        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                      </div>
-                      <input
-                        name="password" type={showPwd ? "text" : "password"}
-                        value={form.password} onChange={handleChange}
-                        placeholder="Password"
-                        className={`login-input pwd-input${errors.password ? " err" : ""}`}
-                        autoComplete="current-password"
-                      />
-                      <button
-                        type="button" onClick={() => setShowPwd(v => !v)}
-                        style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex" }}
-                      >
-                        {showPwd
-                          ? <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                          : <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        }
-                      </button>
-                    </div>
-                    <AnimatePresence>
-                      {errors.password && (
-                        <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="err-txt">
-                          {errors.password}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Remember + Forgot */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "4px 0 2px" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", userSelect: "none" }}>
-                      <div className={`cbx${remember ? " on" : ""}`} onClick={() => setRemember(v => !v)}>
-                        {remember && (
-                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                            <polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </div>
-                      <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>Remember Me</span>
-                    </label>
-                    <Link href="/forgot-password" style={{ fontSize: 13, color: "#7c3aed", fontWeight: 700, textDecoration: "none" }}>
-                      Forgot your password?
-                    </Link>
-                  </div>
-
-                  {/* General error */}
-                  <AnimatePresence>
-                    {errors.general && (
-                      <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, fontSize: 12.5, color: "#dc2626", fontWeight: 600 }}>
-                        {errors.general}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Submit */}
-                  <button type="submit" className="sign-btn" disabled={loading || gLoading} style={{ marginTop: 4 }}>
-                    {loading ? (
-                      <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                        <motion.span
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
-                          style={{ display: "inline-block", width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }}
-                        />
-                        Signing in…
-                      </span>
-                    ) : "Sign In →"}
-                  </button>
-
-                </motion.div>
-              </form>
-
-              {/* Sign up link */}
-              <motion.p
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-                style={{ textAlign: "center", fontSize: 13.5, color: "#6b7280", fontWeight: 600, marginTop: 24 }}
-              >
-                Don't have an account?{" "}
-                <Link href="/signup" style={{ color: "#7c3aed", fontWeight: 800, textDecoration: "none" }}>
-                  create your account
-                </Link>
-              </motion.p>
-            </div>
-
-            {/* ══ RIGHT — illustration + badges ══════════════════════════ */}
-            <div
-              className="right-panel"
-              style={{
-                flex: 1,
-                position: "relative",
-                overflow: "hidden",
-                borderRadius: "20px",
-                backgroundImage: "url('/bg10.jpg')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                minHeight: "80vh",
-                margin: "90px 40px 30px 0",
-              }}
-            >
-              </div>
-
-
+          {/* Heading */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.4 }}>
+            <h1 style={{
+              fontFamily: "'DM Serif Display', serif",
+              fontSize: "clamp(26px, 4vw, 34px)",
+              fontWeight: 400, color: "#0a0a0a",
+              lineHeight: 1.12, letterSpacing: "-0.025em",
+              marginBottom: 10, marginTop: 0,
+            }}>
+              Welcome Back!
+            </h1>
+            <p style={{ fontSize: 14, color: "#6b7280", fontWeight: 500, lineHeight: 1.65, marginBottom: 30 }}>
+              Enter your email and password to access your account.
+            </p>
           </motion.div>
 
+          {/* Google */}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24, duration: 0.4 }}>
+            <button className="google-btn" onClick={handleGoogle} disabled={gLoading || loading}>
+              <svg width="19" height="19" viewBox="0 0 48 48" fill="none">
+                <path d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z" fill="#FFC107"/>
+                <path d="M6.3 14.7l7 5.1C15.2 16.6 19.3 14 24 14c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.6 7.4 6.3 14.7z" fill="#FF3D00"/>
+                <path d="M24 46c5.5 0 10.5-1.8 14.4-5l-6.7-5.5C29.8 37.3 27 38 24 38c-6 0-11.1-4-12.9-9.5l-7 5.4C7.5 41.8 15.2 46 24 46z" fill="#4CAF50"/>
+                <path d="M44.5 20H24v8.5h11.8c-.9 2.8-2.8 5.1-5.2 6.6l6.7 5.5c3.8-3.5 6.2-8.8 6.2-15.6 0-1.3-.2-2.7-.5-4z" fill="#1976D2"/>
+              </svg>
+              <span>{gLoading ? "Signing in…" : "Sign in with Google"}</span>
+            </button>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.28 }}
+            className="divider">or sign in with email</motion.div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} noValidate>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              style={{ display: "flex", flexDirection: "column", gap: 12 }}
+            >
+              {/* Email */}
+              <div>
+                <div style={{ position: "relative" }}>
+                  <div style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", color: "#b8c4d0", pointerEvents: "none" }}>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                  </div>
+                  <input
+                    name="email" type="email" value={form.email}
+                    onChange={handleChange}
+                    placeholder="Email address"
+                    className={`login-input${errors.email ? " err" : ""}`}
+                    autoComplete="email"
+                  />
+                </div>
+                <AnimatePresence>
+                  {errors.email && (
+                    <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="err-txt">
+                      {errors.email}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Password */}
+              <div>
+                <div style={{ position: "relative" }}>
+                  <div style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", color: "#b8c4d0", pointerEvents: "none" }}>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <input
+                    name="password" type={showPwd ? "text" : "password"}
+                    value={form.password} onChange={handleChange}
+                    placeholder="Password"
+                    className={`login-input pwd-input${errors.password ? " err" : ""}`}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button" onClick={() => setShowPwd(v => !v)}
+                    style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex" }}
+                  >
+                    {showPwd
+                      ? <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
+                <AnimatePresence>
+                  {errors.password && (
+                    <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="err-txt">
+                      {errors.password}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Remember + Forgot */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "4px 0 2px", flexWrap: "wrap", gap: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", userSelect: "none" }}>
+                  <div className={`cbx${remember ? " on" : ""}`} onClick={() => setRemember(v => !v)}>
+                    {remember && (
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                        <polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>Remember Me</span>
+                </label>
+                <Link href="/forgot-password" style={{ fontSize: 13, color: "#7c3aed", fontWeight: 700, textDecoration: "none" }}>
+                  Forgot your password?
+                </Link>
+              </div>
+
+              {/* General error */}
+              <AnimatePresence>
+                {errors.general && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, fontSize: 12.5, color: "#dc2626", fontWeight: 600 }}>
+                    {errors.general}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit */}
+              <button type="submit" className="sign-btn" disabled={loading || gLoading} style={{ marginTop: 4 }}>
+                {loading ? (
+                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
+                      style={{ display: "inline-block", width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }}
+                    />
+                    Signing in…
+                  </span>
+                ) : "Sign In →"}
+              </button>
+
+            </motion.div>
+          </form>
+
+          {/* Sign up link */}
+          <motion.p
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+            style={{ textAlign: "center", fontSize: 13.5, color: "#6b7280", fontWeight: 600, marginTop: 24 }}
+          >
+            Don't have an account?{" "}
+            <Link href="/signup" style={{ color: "#7c3aed", fontWeight: 800, textDecoration: "none" }}>
+              create your account
+            </Link>
+          </motion.p>
+        </div>
+
+        {/* ══ RIGHT — illustration + badges ══════════════════════════ */}
+        <div
+          className="right-panel"
+          style={{
+            backgroundImage: "url('/bg10.jpg')",
+          }}
+        />
+
+      </motion.div>
     </>
   );
 }
