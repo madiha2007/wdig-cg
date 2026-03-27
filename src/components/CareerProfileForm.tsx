@@ -613,7 +613,7 @@ function CareerProfileFormInner() {
             </button>
 
             {saved && (
-              <button onClick={() => router.push("/test")} style={{
+              <button onClick={() => router.push("/aptitude")} style={{
                 background: T.gold, border: "none", color: T.ink,
                 padding: "1rem 2rem", borderRadius: 14,
                 cursor: "pointer", fontWeight: 700, fontSize: "0.9rem",
