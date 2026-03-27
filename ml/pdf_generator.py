@@ -1,123 +1,95 @@
 """
-WDIG PDF Report Generator v9.0 — Beautiful Light Theme
-Editorial magazine aesthetic: warm cream pages, refined typography,
-elegant section dividers, soft accent washes, premium card layouts.
+WDIG PDF Report Generator v10.0 — Ethereal Light Theme
+Design: NO solid dark fills anywhere. Only soft washes, gentle tints,
+delicate borders, refined ink-on-cream typography.
+Editorial magazine aesthetic on warm cotton paper.
 """
 
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.utils import ImageReader
 import io, re, math
 
-# ── Refined Light Palette ──────────────────────────────────────────────────────
-CREAM        = colors.HexColor("#FAFAF6")       # page background
-WARM_WHITE   = colors.HexColor("#FFFFFF")
-STONE        = colors.HexColor("#F4F1EB")       # card backgrounds
-STONE_DARK   = colors.HexColor("#EDE9DF")       # borders / dividers
-INK          = colors.HexColor("#1A1A2E")       # headlines
-INK_MID      = colors.HexColor("#3D3D56")       # body text
-INK_LIGHT    = colors.HexColor("#7A7A96")       # captions / labels
-TEAL         = colors.HexColor("#0A7B6B")       # primary accent
-TEAL_MID     = colors.HexColor("#14B89A")       # highlight
-TEAL_WASH    = colors.HexColor("#EAF7F4")       # section wash
-GOLD         = colors.HexColor("#B8821E")       # warm accent
-GOLD_WASH    = colors.HexColor("#FDF6E8")
-ROSE         = colors.HexColor("#A8364A")       # warning accent
-ROSE_WASH    = colors.HexColor("#FDF0F3")
-SKY          = colors.HexColor("#1A5F8A")
-SKY_WASH     = colors.HexColor("#EBF4FB")
-PLUM         = colors.HexColor("#4E3590")
-PLUM_WASH    = colors.HexColor("#F2EEFA")
+# ─────────────────────────────────────────────────────────────────────────────
+# PALETTE — soft washes only, never heavy fills
+# ─────────────────────────────────────────────────────────────────────────────
+PAGE_BG     = colors.HexColor("#FDFCF9")   # warm off-white
+WARM_WHITE  = colors.HexColor("#FFFFFF")
+GHOST       = colors.HexColor("#F8F7F3")   # subtle card bg
+PARCHMENT   = colors.HexColor("#F3EDE3")   # warm tinted section
 
-CAREER_PALETTE = [TEAL, SKY, PLUM, GOLD, ROSE]
-ROAD_PALETTE   = [colors.HexColor("#2D9B6F"), colors.HexColor("#1A7BAA"),
-                  colors.HexColor("#6B4BB5"), colors.HexColor("#B8821E")]
-CAREER_WASHES  = [TEAL_WASH, SKY_WASH, PLUM_WASH, GOLD_WASH, ROSE_WASH]
+# Text — never pure black, always slightly warm/cool
+INK         = colors.HexColor("#1E2230")   # headline
+INK_MID     = colors.HexColor("#3A4055")   # body
+INK_SOFT    = colors.HexColor("#6B7280")   # secondary
+INK_FAINT   = colors.HexColor("#A0A8B8")   # captions
+
+# Teal
+TEAL_INK    = colors.HexColor("#0D7A6B")
+TEAL_MID    = colors.HexColor("#12A88E")
+TEAL_WASH   = colors.HexColor("#EBF8F5")
+TEAL_TINT   = colors.HexColor("#CBF0E8")
+
+# Gold
+GOLD_INK    = colors.HexColor("#9C6B0E")
+GOLD_WASH   = colors.HexColor("#FBF4E4")
+GOLD_TINT   = colors.HexColor("#F2DFA8")
+
+# Rose
+ROSE_INK    = colors.HexColor("#9B3A50")
+ROSE_WASH   = colors.HexColor("#FDF0F3")
+ROSE_TINT   = colors.HexColor("#F5C8D5")
+
+# Sky
+SKY_INK     = colors.HexColor("#1A5A8A")
+SKY_WASH    = colors.HexColor("#EBF4FB")
+SKY_TINT    = colors.HexColor("#BEDDF5")
+
+# Plum
+PLUM_INK    = colors.HexColor("#4A3490")
+PLUM_WASH   = colors.HexColor("#F2EEFA")
+PLUM_TINT   = colors.HexColor("#CEBFEC")
+
+# Career themes: (ink, wash, tint)
+CAREER_THEMES = [
+    (TEAL_INK, TEAL_WASH, TEAL_TINT),
+    (SKY_INK,  SKY_WASH,  SKY_TINT),
+    (PLUM_INK, PLUM_WASH, PLUM_TINT),
+    (GOLD_INK, GOLD_WASH, GOLD_TINT),
+    (ROSE_INK, ROSE_WASH, ROSE_TINT),
+]
 
 W, H    = A4
-MARGIN  = 42
-CW      = W - 2 * MARGIN       # content width
+MARGIN  = 44
+CW      = W - 2 * MARGIN
 LINE_H  = 15.0
-BODY_SZ = 9.2
-FLOOR   = 68
+BODY_SZ = 9.4
+FLOOR   = 70
 
-# ── Typography helpers ─────────────────────────────────────────────────────────
 
-def sw(c, text, font, size):
-    """stringWidth shorthand."""
-    return c.stringWidth(text, font, size)
+# ─────────────────────────────────────────────────────────────────────────────
+# LOW-LEVEL HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _clean(text):
+    t = re.sub(r'\*\*(.+?)\*\*', r'\1', text or "")
+    return re.sub(r'\*(.+?)\*', r'\1', t).strip()
 
 def wrap(c, text, font, size, max_w):
-    """Accurate word-wrap. Returns list of lines."""
-    clean = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-    clean = re.sub(r'\*(.+?)\*',   r'\1', clean).strip()
-    words = clean.split()
+    words = _clean(text).split()
     lines, cur = [], ""
-    for w_ in words:
-        test = (cur + " " + w_).strip() if cur else w_
+    for w in words:
+        test = (cur + " " + w).strip() if cur else w
         if c.stringWidth(test, font, size) <= max_w:
             cur = test
         else:
             if cur: lines.append(cur)
-            cur = w_
+            cur = w
     if cur: lines.append(cur)
-    return lines
+    return lines or [""]
 
-# ── Page management ────────────────────────────────────────────────────────────
-
-def new_page(c, style_name):
-    c.showPage()
-    return draw_header(c, style_name)
-
-def draw_header(c, style_name):
-    """Elegant thin top bar. Returns y below."""
-    # Full-width cream bar at top
-    c.setFillColor(WARM_WHITE)
-    c.rect(0, H - 36, W, 36, stroke=0, fill=1)
-    # Thin teal rule
-    c.setFillColor(TEAL)
-    c.rect(0, H - 37, W, 1.5, stroke=0, fill=1)
-    # Left: document label
-    c.setFont("Helvetica-Bold", 6.5)
-    c.setFillColor(TEAL)
-    c.drawString(MARGIN, H - 22, "WDIG  APTITUDE REPORT")
-    # Right: style name
-    c.setFont("Helvetica", 6.5)
-    c.setFillColor(INK_LIGHT)
-    c.drawRightString(W - MARGIN, H - 22, style_name[:52])
-    # Page-number placeholder (bottom)
-    return H - 48
-
-def draw_footer(c, page_num):
-    """Refined footer with page number."""
-    c.setStrokeColor(STONE_DARK)
-    c.setLineWidth(0.5)
-    c.line(MARGIN, 30, W - MARGIN, 30)
-    c.setFont("Helvetica", 6.5)
-    c.setFillColor(INK_LIGHT)
-    c.drawCentredString(W / 2, 18, "WDIG Career Guidance  ·  Confidential  ·  For personal use only")
-    c.setFont("Helvetica-Bold", 6.5)
-    c.setFillColor(TEAL)
-    c.drawRightString(W - MARGIN, 18, str(page_num))
-
-# ── Low-level drawing ──────────────────────────────────────────────────────────
-
-def filled_rr(c, x, y, w, h, r, fill_col, stroke_col=None, sw_=0.8):
-    c.setFillColor(fill_col)
-    if stroke_col:
-        c.setStrokeColor(stroke_col)
-        c.setLineWidth(sw_)
-        c.roundRect(x, y, w, h, r, stroke=1, fill=1)
-    else:
-        c.roundRect(x, y, w, h, r, stroke=0, fill=1)
-
-def stroke_rr(c, x, y, w, h, r, stroke_col, sw_=0.8):
-    c.setStrokeColor(stroke_col)
-    c.setLineWidth(sw_)
-    c.roundRect(x, y, w, h, r, stroke=1, fill=0)
-
-def hairline(c, x1, y1, x2, y2, col=STONE_DARK, lw=0.5):
+def hairline(c, x1, y1, x2, y2, col=None, lw=0.4):
+    col = col or colors.HexColor("#E0DDD6")
     c.setStrokeColor(col)
     c.setLineWidth(lw)
     c.line(x1, y1, x2, y2)
@@ -126,7 +98,96 @@ def dot(c, x, y, r, col):
     c.setFillColor(col)
     c.circle(x, y, r, stroke=0, fill=1)
 
-# ── Text drawing ───────────────────────────────────────────────────────────────
+def filled_rr(c, x, y, w, h, r, fill_col, alpha=1.0):
+    c.saveState()
+    c.setFillColor(fill_col)
+    c.setFillAlpha(alpha)
+    c.roundRect(x, y, w, h, r, stroke=0, fill=1)
+    c.restoreState()
+
+def stroked_rr(c, x, y, w, h, r, stroke_col, lw=0.7):
+    c.saveState()
+    c.setStrokeColor(stroke_col)
+    c.setLineWidth(lw)
+    c.roundRect(x, y, w, h, r, stroke=1, fill=0)
+    c.restoreState()
+
+def card(c, x, y, w, h, r=12, bg=None, border=None, border_alpha=0.35):
+    """Draw a light-theme card: ghost background + hairline border."""
+    bg = bg or WARM_WHITE
+    filled_rr(c, x, y, w, h, r, bg)
+    if border:
+        c.saveState()
+        c.setStrokeColor(border)
+        c.setStrokeAlpha(border_alpha)
+        c.setLineWidth(0.7)
+        c.roundRect(x, y, w, h, r, stroke=1, fill=0)
+        c.restoreState()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAGE FRAME
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _page_bg(c):
+    c.setFillColor(PAGE_BG)
+    c.rect(0, 0, W, H, stroke=0, fill=1)
+    # Subtle warm vignette corners (very light parchment dots)
+    for (cx, cy), size, alpha in [
+        ((0, H), 120, 0.06), ((W, 0), 90, 0.04)
+    ]:
+        c.saveState()
+        c.setFillColor(GOLD_INK)
+        c.setFillAlpha(alpha)
+        c.circle(cx, cy, size, stroke=0, fill=1)
+        c.restoreState()
+
+def draw_header(c, style_name):
+    filled_rr(c, 0, H - 36, W, 36, 0, WARM_WHITE)
+    # Teal hairline at very top
+    c.saveState()
+    c.setFillColor(TEAL_INK)
+    c.setFillAlpha(0.45)
+    c.rect(0, H - 37, W, 1.5, stroke=0, fill=1)
+    c.restoreState()
+    # Gold dot accent
+    c.saveState()
+    c.setFillColor(GOLD_INK)
+    c.setFillAlpha(0.5)
+    c.circle(MARGIN - 12, H - 18, 2, stroke=0, fill=1)
+    c.restoreState()
+
+    c.setFont("Helvetica-Bold", 6.2)
+    c.setFillColor(TEAL_INK)
+    c.drawString(MARGIN, H - 22, "W D I G  ·  APTITUDE REPORT")
+    c.setFont("Helvetica", 6.2)
+    c.setFillColor(INK_FAINT)
+    c.drawRightString(W - MARGIN, H - 22, style_name[:58])
+    return H - 52
+
+def draw_footer(c, page_num):
+    c.saveState()
+    c.setStrokeColor(colors.HexColor("#E4E1D8"))
+    c.setLineWidth(0.5)
+    c.line(MARGIN, 34, W - MARGIN, 34)
+    c.restoreStore = None
+    c.restoreState()
+    c.setFont("Helvetica", 6)
+    c.setFillColor(INK_FAINT)
+    c.drawCentredString(W / 2, 21, "WDIG Career Guidance  ·  Confidential  ·  For personal use only")
+    c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(TEAL_INK)
+    c.drawRightString(W - MARGIN, 21, str(page_num))
+
+def new_page(c, style_name):
+    c.showPage()
+    _page_bg(c)
+    return draw_header(c, style_name)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEXT PRIMITIVES
+# ─────────────────────────────────────────────────────────────────────────────
 
 def draw_block(c, text, x, y, font, size, col, max_w,
                leading=LINE_H, style_name="", indent=0):
@@ -146,207 +207,290 @@ def draw_body(c, body_text, x, y, max_w, style_name, col=None):
     col = col or INK_MID
     paras = [p.strip() for p in re.split(r'\n\n+', body_text) if p.strip()]
     for para in paras:
-        est = max(1, int(c.stringWidth(para, "Helvetica", BODY_SZ) / max_w) + 1)
-        if y - (min(3, est) * LINE_H) < FLOOR:
+        if y - LINE_H * 2 < FLOOR:
             y = new_page(c, style_name)
-        y = draw_block(c, para, x, y, "Helvetica", BODY_SZ, col, max_w, style_name=style_name)
+        y = draw_block(c, para, x, y, "Helvetica", BODY_SZ, col, max_w,
+                       style_name=style_name)
         y -= 8
     return y
 
-# ── Section heading strip ──────────────────────────────────────────────────────
 
-def section_head(c, y, title, accent, wash, x=MARGIN, w=CW):
-    """Beautiful section header: wash bg, left accent bar, elegant label."""
-    h = 44
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION HEADER — light wash band, colored ink title, no solid fill
+# ─────────────────────────────────────────────────────────────────────────────
+
+def section_head(c, y, title, accent_ink, wash, x=None, w=None):
+    x = x if x is not None else MARGIN
+    w = w if w is not None else CW
+    h = 42
     if y - h < FLOOR:
-        return y  # caller handles page break
-    filled_rr(c, x, y - h, w, h, 10, wash)
-    # Left accent bar
-    c.setFillColor(accent)
-    c.roundRect(x, y - h, 5, h, 3, stroke=0, fill=1)
-    # Title
-    c.setFont("Helvetica-Bold", 11.5)
-    c.setFillColor(INK)
-    c.drawString(x + 20, y - h + 15, title)
-    # Right decorative rule
-    rule_x = x + w - 54
-    c.setFillColor(accent)
-    c.rect(rule_x, y - h + 20, 46, 2, stroke=0, fill=1)
-    c.setFillColor(accent)
-    c.setFillAlpha(0.4)
-    c.rect(rule_x, y - h + 15, 32, 2, stroke=0, fill=1)
-    c.setFillAlpha(1.0)
-    return y - h - 10
+        return y
 
-def thin_rule(c, y, accent=STONE_DARK):
-    hairline(c, MARGIN, y, MARGIN + CW, y, accent)
-    return y - 10
-
-# ── Pull quote ─────────────────────────────────────────────────────────────────
-
-def pull_quote(c, text, x, y, w, accent, style_name):
-    paras = [p.strip() for p in re.split(r'\n\n+', text) if p.strip()]
-    if not paras: return y
-    snippet = paras[0][:260]
-    lines   = wrap(c, snippet, "Helvetica-Oblique", 10, w - 28)
-    bh      = len(lines) * 14.5 + 22
-    if y - bh < FLOOR:
-        y = new_page(c, style_name)
     # Wash background
-    filled_rr(c, x, y - bh, w, bh, 8, accent)
-    # Actually draw the fill with proper alpha
+    filled_rr(c, x, y - h, w, h, 10, wash)
+    # Thin left accent stroke (not fill — just a line)
     c.saveState()
-    c.setFillColor(accent)
-    c.setFillAlpha(0.07)
-    c.roundRect(x, y - bh, w, bh, 8, stroke=0, fill=1)
+    c.setStrokeColor(accent_ink)
+    c.setStrokeAlpha(0.65)
+    c.setLineWidth(2.5)
+    c.line(x + 3.5, y - h + 6, x + 3.5, y - 6)
     c.restoreState()
-    # Left border bar
-    c.setFillColor(accent)
-    c.roundRect(x, y - bh, 4, bh, 2, stroke=0, fill=1)
-    # Quotation mark
-    c.setFont("Helvetica-Bold", 32)
-    c.saveState(); c.setFillColor(accent); c.setFillAlpha(0.15)
-    c.drawString(x + 10, y - 24, "\u201c"); c.restoreState()
-    # Text
-    c.setFont("Helvetica-Oblique", 10)
-    c.setFillColor(INK_MID)
-    ty = y - 13
-    for line in lines:
-        c.drawString(x + 18, ty, line); ty -= 14.5
-    return y - bh - 12
 
-# ── Hero / Cover page ──────────────────────────────────────────────────────────
+    # Title in accent ink
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(accent_ink)
+    c.drawString(x + 18, y - h + 14, title)
 
-def draw_cover(c, thinking_style, secondary, top_careers, style_name):
-    """Full-page elegant cover with light theme."""
-    # Page background
-    c.setFillColor(CREAM)
-    c.rect(0, 0, W, H, stroke=0, fill=1)
-
-    # Top decorative band — subtle gradient simulation via overlapping rects
-    for i in range(12):
-        alpha = 0.06 - i * 0.005
+    # Decorative dots at right
+    for i, alpha in enumerate([0.5, 0.3, 0.15]):
         c.saveState()
-        c.setFillColor(TEAL)
-        c.setFillAlpha(max(0, alpha))
-        c.rect(0, H - (i + 1) * 18, W, 18, stroke=0, fill=1)
+        c.setFillColor(accent_ink)
+        c.setFillAlpha(alpha)
+        c.circle(x + w - 18 - i * 10, y - h / 2, 3 - i * 0.5, stroke=0, fill=1)
         c.restoreState()
 
-    # Thin teal accent line
-    c.setFillColor(TEAL)
-    c.rect(0, H - 6, W, 6, stroke=0, fill=1)
+    return y - h - 12
 
-    # WDIG wordmark area
-    c.setFont("Helvetica-Bold", 8)
-    c.setFillColor(TEAL)
-    c.drawString(MARGIN, H - 26, "W D I G")
-    c.setFont("Helvetica", 7)
-    c.setFillColor(INK_LIGHT)
-    c.drawString(MARGIN + 42, H - 26, "CAREER GUIDANCE")
 
-    # Top-right: report label chip
-    chip_w = 110; chip_h = 18
-    filled_rr(c, W - MARGIN - chip_w, H - 30, chip_w, chip_h, 9, TEAL_WASH,
-               stroke_col=TEAL, sw_=0.7)
-    c.setFont("Helvetica-Bold", 6.5); c.setFillColor(TEAL)
-    c.drawCentredString(W - MARGIN - chip_w / 2, H - 24.5, "APTITUDE REPORT")
+def thin_rule(c, y, col=None):
+    col = col or colors.HexColor("#E4E1D8")
+    hairline(c, MARGIN, y, MARGIN + CW, y, col, 0.5)
+    # Two tiny dots at center
+    cx = MARGIN + CW / 2
+    dot(c, cx - 6, y, 1.5, col)
+    dot(c, cx, y, 1.5, col)
+    dot(c, cx + 6, y, 1.5, col)
+    return y - 12
 
-    # ── Main title area ────────────────────────────────────────────────────────
-    title = thinking_style or "Your Profile"
-    title_y = H - 120
 
-    # Decorative circles — soft, elegant
+# ─────────────────────────────────────────────────────────────────────────────
+# PULL QUOTE — italic block on tinted wash
+# ─────────────────────────────────────────────────────────────────────────────
+
+def pull_quote(c, text, x, y, w, accent_ink, tint, style_name):
+    paras = [p.strip() for p in re.split(r'\n\n+', text) if p.strip()]
+    if not paras: return y
+    snippet = paras[0][:240]
+    lines = wrap(c, snippet, "Helvetica-Oblique", 10.5, w - 32)
+    bh = len(lines) * 15 + 28
+    if y - bh < FLOOR:
+        y = new_page(c, style_name)
+
+    # Light tint background
+    filled_rr(c, x, y - bh, w, bh, 8, tint, alpha=0.55)
+    # Left vertical line (not solid bar)
     c.saveState()
-    c.setFillColor(TEAL_WASH)
-    c.setFillAlpha(0.7)
-    c.circle(W - MARGIN - 30, title_y + 30, 90, stroke=0, fill=1)
+    c.setStrokeColor(accent_ink)
+    c.setStrokeAlpha(0.5)
+    c.setLineWidth(2)
+    c.line(x + 4, y - bh + 8, x + 4, y - 8)
     c.restoreState()
+    # Quotation mark glyph (very faint)
     c.saveState()
-    c.setFillColor(GOLD_WASH)
-    c.setFillAlpha(0.6)
-    c.circle(MARGIN + 15, title_y - 60, 55, stroke=0, fill=1)
+    c.setFont("Helvetica-Bold", 38)
+    c.setFillColor(accent_ink)
+    c.setFillAlpha(0.09)
+    c.drawString(x + 12, y - 28, "\u201c")
     c.restoreState()
 
-    # "Who you are" label
+    c.setFont("Helvetica-Oblique", 10.5)
+    c.setFillColor(INK_MID)
+    ty = y - 14
+    for line in lines:
+        c.drawString(x + 20, ty, line)
+        ty -= 15
+    return y - bh - 14
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COVER PAGE — all light, no dark backgrounds
+# ─────────────────────────────────────────────────────────────────────────────
+
+def draw_cover(c, thinking_style, secondary, top_careers, style_name):
+    _page_bg(c)
+
+    # ── Decorative geometric wash shapes ────────────────────────────────────
+    # Large teal circle, top-right, very faint
+    c.saveState()
+    c.setFillColor(TEAL_INK)
+    c.setFillAlpha(0.05)
+    c.circle(W - MARGIN + 20, H - 80, 170, stroke=0, fill=1)
+    c.restoreState()
+    # Gold circle, bottom-left
+    c.saveState()
+    c.setFillColor(GOLD_INK)
+    c.setFillAlpha(0.04)
+    c.circle(MARGIN - 30, 120, 130, stroke=0, fill=1)
+    c.restoreState()
+    # Rose hint, mid-left
+    c.saveState()
+    c.setFillColor(ROSE_INK)
+    c.setFillAlpha(0.03)
+    c.circle(MARGIN - 20, H * 0.55, 90, stroke=0, fill=1)
+    c.restoreState()
+
+    # ── Top header band: ultra-thin teal wash ───────────────────────────────
+    filled_rr(c, 0, H - 48, W, 48, 0, TEAL_WASH)
+    c.saveState()
+    c.setFillColor(TEAL_INK)
+    c.setFillAlpha(0.35)
+    c.rect(0, H - 49, W, 1.2, stroke=0, fill=1)
+    c.restoreState()
+
     c.setFont("Helvetica-Bold", 7)
-    c.setFillColor(TEAL)
-    c.drawString(MARGIN, title_y + 16, "YOUR THINKING STYLE")
-    hairline(c, MARGIN, title_y + 10, MARGIN + 140, title_y + 10, TEAL, 1)
+    c.setFillColor(TEAL_INK)
+    c.drawString(MARGIN, H - 28, "W D I G")
+    c.setFont("Helvetica", 7)
+    c.setFillColor(INK_SOFT)
+    c.drawString(MARGIN + 48, H - 28, "CAREER GUIDANCE")
 
-    # Title — split across lines nicely
+    # Report label chip
+    chip_w = 104
+    filled_rr(c, W - MARGIN - chip_w, H - 38, chip_w, 20, 10, TEAL_TINT)
+    c.saveState()
+    c.setStrokeColor(TEAL_INK)
+    c.setStrokeAlpha(0.3)
+    c.setLineWidth(0.6)
+    c.roundRect(W - MARGIN - chip_w, H - 38, chip_w, 20, 10, stroke=1, fill=0)
+    c.restoreState()
+    c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(TEAL_INK)
+    c.drawCentredString(W - MARGIN - chip_w / 2, H - 30, "APTITUDE REPORT")
+
+    # ── Main title area ──────────────────────────────────────────────────────
+    title_y = H - 140
+    title = thinking_style or "Your Profile"
+
+    # Label above title
+    c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(TEAL_MID)
+    c.drawString(MARGIN, title_y + 20, "YOUR THINKING STYLE")
+    # Short rule
+    c.saveState()
+    c.setStrokeColor(TEAL_MID)
+    c.setStrokeAlpha(0.5)
+    c.setLineWidth(1)
+    c.line(MARGIN, title_y + 14, MARGIN + 130, title_y + 14)
+    c.restoreState()
+
+    # Title text in deep ink (no background)
     words = title.split()
-    fs = 30 if len(title) < 28 else 22 if len(title) < 40 else 18
+    fs = 30 if len(title) < 26 else 22 if len(title) < 40 else 18
     c.setFont("Helvetica-Bold", fs)
     c.setFillColor(INK)
-    line1 = " ".join(words[:3]); line2 = " ".join(words[3:])
-    c.drawString(MARGIN, title_y - 10, line1)
-    if line2:
-        c.drawString(MARGIN, title_y - 10 - fs - 4, line2)
+    l1 = " ".join(words[:3])
+    l2 = " ".join(words[3:])
+    c.drawString(MARGIN, title_y - 8, l1)
+    if l2:
+        c.drawString(MARGIN, title_y - 8 - fs - 5, l2)
 
-    # Secondary style badge
-    badge_y = title_y - (10 + fs + 4 + (fs + 4 if line2 else 0)) - 18
+    # Decorative thin underline
+    title_bot = title_y - 8 - (fs + 5 if l2 else 0) - 8
+    c.saveState()
+    c.setStrokeColor(TEAL_INK)
+    c.setStrokeAlpha(0.2)
+    c.setLineWidth(1)
+    c.line(MARGIN, title_bot, MARGIN + CW * 0.55, title_bot)
+    c.restoreState()
+
+    # Secondary badge
+    badge_y = title_bot - 20
     if secondary:
-        bw = min(200, c.stringWidth(secondary, "Helvetica", 9) + 36)
-        filled_rr(c, MARGIN, badge_y, bw, 22, 11, STONE, stroke_col=STONE_DARK, sw_=0.8)
-        c.setFont("Helvetica-Bold", 6); c.setFillColor(TEAL_MID)
-        c.drawString(MARGIN + 10, badge_y + 7, "ALSO")
-        c.setFont("Helvetica", 9); c.setFillColor(INK_MID)
-        c.drawString(MARGIN + 36, badge_y + 7, secondary[:36])
-        badge_y -= 30
+        bw = min(220, c.stringWidth(secondary, "Helvetica", 9.5) + 40)
+        filled_rr(c, MARGIN, badge_y, bw, 22, 11, GHOST)
+        c.saveState()
+        c.setStrokeColor(INK_FAINT)
+        c.setLineWidth(0.5)
+        c.roundRect(MARGIN, badge_y, bw, 22, 11, stroke=1, fill=0)
+        c.restoreState()
+        c.setFont("Helvetica-Bold", 6)
+        c.setFillColor(TEAL_MID)
+        c.drawString(MARGIN + 10, badge_y + 8, "ALSO")
+        c.setFont("Helvetica", 9.5)
+        c.setFillColor(INK_MID)
+        c.drawString(MARGIN + 38, badge_y + 7, secondary[:38])
+        badge_y -= 34
     else:
-        badge_y -= 12
+        badge_y -= 14
 
-    # ── Top career chips ───────────────────────────────────────────────────────
+    # ── Top-career chips ─────────────────────────────────────────────────────
     chip_x = MARGIN
-    cols   = [TEAL, SKY, PLUM]
-    washes = [TEAL_WASH, SKY_WASH, PLUM_WASH]
     for i, career in enumerate(top_careers[:3]):
-        name  = (career.get("name") or "")[:22]
+        ink, wash, tint = CAREER_THEMES[i]
+        name = (career.get("name") or "")[:20]
         score = career.get("score", 0)
-        label = f"{name}  {score}%"
-        cw_   = min(165, c.stringWidth(label, "Helvetica-Bold", 8) + 22)
-        filled_rr(c, chip_x, badge_y, cw_, 22, 11, washes[i], stroke_col=cols[i], sw_=0.8)
-        dot(c, chip_x + 11, badge_y + 11, 3, cols[i])
-        c.setFont("Helvetica-Bold", 8); c.setFillColor(INK_MID)
-        c.drawString(chip_x + 20, badge_y + 7, name)
-        c.setFont("Helvetica-Bold", 8); c.setFillColor(cols[i])
-        c.drawRightString(chip_x + cw_ - 8, badge_y + 7, f"{score}%")
-        chip_x += cw_ + 8
+        cw = min(175, c.stringWidth(f"{name}  {score}%", "Helvetica-Bold", 8) + 28)
+        filled_rr(c, chip_x, badge_y, cw, 24, 12, tint, alpha=0.7)
+        c.saveState()
+        c.setStrokeColor(ink)
+        c.setStrokeAlpha(0.35)
+        c.setLineWidth(0.7)
+        c.roundRect(chip_x, badge_y, cw, 24, 12, stroke=1, fill=0)
+        c.restoreState()
+        dot(c, chip_x + 12, badge_y + 12, 3.5, ink)
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(INK_MID)
+        c.drawString(chip_x + 22, badge_y + 8, name)
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(ink)
+        c.drawRightString(chip_x + cw - 8, badge_y + 8, f"{score}%")
+        chip_x += cw + 8
 
-    # ── Stats ribbon — elegant card row ───────────────────────────────────────
-    ribbon_y = 155
-    ribbon_h = 58
-    filled_rr(c, MARGIN, ribbon_y, CW, ribbon_h, 12, WARM_WHITE,
-               stroke_col=STONE_DARK, sw_=0.8)
+    # ── Stats ribbon ─────────────────────────────────────────────────────────
+    ribbon_y = 160
+    ribbon_h = 62
+    # Light ghost card
+    filled_rr(c, MARGIN, ribbon_y, CW, ribbon_h, 14, WARM_WHITE)
+    c.saveState()
+    c.setStrokeColor(colors.HexColor("#E0DDD6"))
+    c.setLineWidth(0.6)
+    c.roundRect(MARGIN, ribbon_y, CW, ribbon_h, 14, stroke=1, fill=0)
+    c.restoreState()
+    # Top tint strip
+    filled_rr(c, MARGIN, ribbon_y + ribbon_h - 6, CW, 6, 0, TEAL_TINT, alpha=0.5)
+    c.saveState()
+    c.setFillColor(TEAL_WASH)
+    c.roundRect(MARGIN, ribbon_y + ribbon_h - 14, CW, 14, 0, stroke=0, fill=1)
+    c.rect(MARGIN, ribbon_y + ribbon_h - 14, CW, 7, stroke=0, fill=1)
+    c.restoreState()
+
     stats = [
-        ("Thinking Style", (thinking_style or "—")[:22]),
-        ("Top Career",     (top_careers[0]["name"] if top_careers else "—")[:22]),
-        ("Match Score",    f"{top_careers[0].get('score','—')}%" if top_careers else "—"),
-        ("Dimensions",     "6 analysed"),
+        ("Thinking Style", (thinking_style or "—").split()[:3]),
+        ("Top Career",     [(top_careers[0]["name"] if top_careers else "—")]),
+        ("Match Score",    [f"{top_careers[0].get('score','—')}%"] if top_careers else ["—"]),
+        ("Dimensions",     ["6 analysed"]),
     ]
     cell_w = CW / 4
-    for i, (label, value) in enumerate(stats):
+    for i, (label, vals) in enumerate(stats):
         sx = MARGIN + i * cell_w
         if i > 0:
-            hairline(c, sx, ribbon_y + 10, sx, ribbon_y + ribbon_h - 10, STONE_DARK)
-        c.setFont("Helvetica-Bold", 6); c.setFillColor(INK_LIGHT)
-        c.drawString(sx + 12, ribbon_y + ribbon_h - 16, label.upper())
-        c.setFont("Helvetica-Bold", 9.5); c.setFillColor(INK)
-        c.drawString(sx + 12, ribbon_y + 16, value)
-        # small accent dot
-        dot(c, sx + 6, ribbon_y + 18, 2, TEAL)
+            c.saveState()
+            c.setStrokeColor(colors.HexColor("#ECEAE4"))
+            c.setLineWidth(0.5)
+            c.line(sx, ribbon_y + 10, sx, ribbon_y + ribbon_h - 18)
+            c.restoreState()
+        c.setFont("Helvetica-Bold", 5.5)
+        c.setFillColor(INK_FAINT)
+        c.drawString(sx + 12, ribbon_y + ribbon_h - 12, label.upper())
+        c.setFont("Helvetica-Bold", 9)
+        c.setFillColor(INK)
+        c.drawString(sx + 12, ribbon_y + 20, " ".join(vals)[:22])
+        dot(c, sx + 6, ribbon_y + 23, 2, TEAL_INK)
 
-    # ── Bottom decoration ──────────────────────────────────────────────────────
-    c.setFont("Helvetica", 7); c.setFillColor(INK_LIGHT)
+    # ── Bottom accent ─────────────────────────────────────────────────────────
+    c.setFont("Helvetica", 7)
+    c.setFillColor(INK_FAINT)
     c.drawCentredString(W / 2, 36, "Confidential  ·  For personal use only")
-    hairline(c, MARGIN, 44, W - MARGIN, 44, STONE_DARK)
+    hairline(c, MARGIN, 46, W - MARGIN, 46, colors.HexColor("#E4E1D8"))
 
-    return ribbon_y - 20
+    return ribbon_y - 22
 
 
-# ── Radar chart ────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# RADAR CHART — uses only light fills and ink-colored strokes
+# ─────────────────────────────────────────────────────────────────────────────
 
-def draw_radar(c, scores, cx, cy, R=52):
+def draw_radar(c, scores, cx, cy, R=54):
     items = list(scores.items()); n = len(items)
     if not n: return
 
@@ -354,422 +498,499 @@ def draw_radar(c, scores, cx, cy, R=52):
         a = (math.pi * 2 * i / n) - math.pi / 2
         return cx + frac * R * math.cos(a), cy + frac * R * math.sin(a)
 
-    # Grid rings
+    # Grid rings — very light
     for lvl in [.25, .5, .75, 1.0]:
         pts = [pt(i, lvl) for i in range(n)]
-        path = c.beginPath(); path.moveTo(*pts[0])
+        path = c.beginPath()
+        path.moveTo(*pts[0])
         for p in pts[1:]: path.lineTo(*p)
         path.close()
         c.saveState()
-        c.setStrokeColor(STONE_DARK); c.setLineWidth(0.6)
-        if lvl == 1.0:
-            c.setStrokeColor(TEAL); c.setStrokeAlpha(0.25)
-        c.drawPath(path, stroke=1, fill=0); c.restoreState()
+        c.setStrokeColor(TEAL_INK if lvl == 1.0 else colors.HexColor("#D0D8DC"))
+        c.setStrokeAlpha(0.3 if lvl == 1.0 else 0.4)
+        c.setLineWidth(0.55)
+        c.drawPath(path, stroke=1, fill=0)
+        c.restoreState()
 
     # Spokes
     for i in range(n):
         ex, ey = pt(i, 1.0)
-        c.saveState(); c.setStrokeColor(STONE_DARK); c.setLineWidth(0.4)
-        c.line(cx, cy, ex, ey); c.restoreState()
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#CACFD8"))
+        c.setLineWidth(0.4)
+        c.line(cx, cy, ex, ey)
+        c.restoreState()
 
-    # Data fill
+    # Data fill — teal wash, not solid
     data_pts = [pt(i, items[i][1] / 100.0) for i in range(n)]
-    path = c.beginPath(); path.moveTo(*data_pts[0])
+    path = c.beginPath()
+    path.moveTo(*data_pts[0])
     for p in data_pts[1:]: path.lineTo(*p)
     path.close()
     c.saveState()
-    c.setFillColor(TEAL); c.setFillAlpha(0.15)
-    c.setStrokeColor(TEAL); c.setLineWidth(1.6)
-    c.drawPath(path, stroke=1, fill=1); c.restoreState()
+    c.setFillColor(TEAL_INK)
+    c.setFillAlpha(0.10)
+    c.setStrokeColor(TEAL_INK)
+    c.setStrokeAlpha(0.55)
+    c.setLineWidth(1.5)
+    c.drawPath(path, stroke=1, fill=1)
+    c.restoreState()
 
-    # Data points
+    # Data point circles — white center + teal ring
     for px, py in data_pts:
-        c.setFillColor(WARM_WHITE); c.circle(px, py, 3.5, stroke=0, fill=1)
-        c.setFillColor(TEAL); c.circle(px, py, 2.5, stroke=0, fill=1)
+        c.setFillColor(WARM_WHITE)
+        c.circle(px, py, 3.8, stroke=0, fill=1)
+        c.saveState()
+        c.setStrokeColor(TEAL_INK)
+        c.setStrokeAlpha(0.7)
+        c.setLineWidth(1.2)
+        c.circle(px, py, 3.2, stroke=1, fill=0)
+        c.restoreState()
 
     # Labels
-    c.setFont("Helvetica-Bold", 6); c.setFillColor(INK_MID)
+    c.setFont("Helvetica-Bold", 6)
+    c.setFillColor(INK_SOFT)
     for i, (dim, val) in enumerate(items):
-        lx, ly = pt(i, 1.32)
-        label  = dim[:5].upper()
-        lw_    = c.stringWidth(label, "Helvetica-Bold", 6)
-        c.drawString(lx - lw_ / 2, ly - 2.5, label)
+        lx, ly = pt(i, 1.35)
+        lbl = dim[:5].upper()
+        c.drawString(lx - c.stringWidth(lbl, "Helvetica-Bold", 6) / 2, ly - 2.5, lbl)
 
 
-# ── Trait bars ─────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# TRAIT BARS — light track, tinted fill, colored score label
+# ─────────────────────────────────────────────────────────────────────────────
 
-def draw_trait_bars(c, traits, x, y, bar_w=165, bar_h=10, gap=9):
-    cols = [TEAL, SKY, PLUM, GOLD, ROSE, TEAL_MID]
+def draw_trait_bars(c, traits, x, y, bar_w=165, bar_h=9, gap=10):
     for i, trait in enumerate(traits[:6]):
-        label = re.sub(r'\*\*?', '', trait.get("label", trait.get("trait", "")))[:24]
+        ink, wash, tint = CAREER_THEMES[i % len(CAREER_THEMES)]
+        label = _clean(trait.get("label", trait.get("trait", "")))[:26]
         score = trait.get("score", 0)
-        col   = cols[i % len(cols)]
 
-        c.setFont("Helvetica-Bold", 7); c.setFillColor(INK_MID)
-        c.drawString(x, y + 3, label)
+        c.setFont("Helvetica-Bold", 7)
+        c.setFillColor(INK_MID)
+        c.drawString(x, y + 2, label)
 
-        # Track
-        c.saveState(); c.setFillColor(STONE); c.roundRect(x + 115, y, bar_w, bar_h, bar_h / 2, stroke=0, fill=1); c.restoreState()
-        # Fill
-        fill = max(bar_h, (score / 100) * bar_w)
-        c.saveState(); c.setFillColor(col); c.setFillAlpha(0.85)
-        c.roundRect(x + 115, y, fill, bar_h, bar_h / 2, stroke=0, fill=1); c.restoreState()
+        # Track (very light)
+        filled_rr(c, x + 118, y, bar_w, bar_h, bar_h / 2, tint, alpha=0.5)
+        # Fill (tinted, not solid)
+        fill_w = max(bar_h, (score / 100) * bar_w)
+        filled_rr(c, x + 118, y, fill_w, bar_h, bar_h / 2, ink, alpha=0.55)
 
-        c.setFont("Helvetica-Bold", 7); c.setFillColor(col)
-        c.drawString(x + 115 + bar_w + 5, y + 2, f"{score}%")
+        c.setFont("Helvetica-Bold", 7)
+        c.setFillColor(ink)
+        c.drawString(x + 118 + bar_w + 5, y + 1.5, f"{score}%")
         y -= bar_h + gap
     return y
 
 
-# ── Dimension profile card ─────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# DIMENSION PROFILE CARD
+# ─────────────────────────────────────────────────────────────────────────────
 
 def draw_dimension_card(c, dim_scores, dominant_traits, supp, y, style_name):
-    if not dim_scores and not dominant_traits:
-        return y
-    card_h = 168
-    if y - card_h < FLOOR:
-        y = new_page(c, style_name)
+    if not dim_scores and not dominant_traits: return y
+    card_h = 175
+    if y - card_h < FLOOR: y = new_page(c, style_name)
 
-    # Card shell
-    filled_rr(c, MARGIN, y - card_h, CW, card_h, 14, WARM_WHITE,
-               stroke_col=STONE_DARK, sw_=0.8)
-    # Teal top accent strip
-    c.saveState(); c.setFillColor(TEAL); c.setFillAlpha(0.06)
-    c.roundRect(MARGIN, y - 28, CW, 28, 14, stroke=0, fill=1); c.restoreState()
-    c.roundRect(MARGIN, y - 28, CW, 14, 0, stroke=0, fill=1)  # square bottom half
+    card(c, MARGIN, y - card_h, CW, card_h, r=14,
+         bg=WARM_WHITE, border=TEAL_INK)
 
-    # Section labels
-    left_x  = MARGIN + 14
-    right_x = MARGIN + CW * 0.42 + 14
+    # Very soft teal header tint
+    filled_rr(c, MARGIN, y - 30, CW, 30, 0, TEAL_WASH, alpha=0.6)
+    c.saveState()
+    c.setFillColor(TEAL_WASH)
+    c.roundRect(MARGIN, y - card_h, CW, card_h, 14, stroke=0, fill=1)
+    c.restoreState()
+    card(c, MARGIN, y - card_h, CW, card_h, r=14, bg=WARM_WHITE, border=TEAL_INK)
+    filled_rr(c, MARGIN, y - 30, CW, 30, 0, TEAL_WASH, alpha=0.65)
 
-    c.setFont("Helvetica-Bold", 6.5); c.setFillColor(TEAL)
-    if dim_scores:   c.drawString(left_x,  y - 18, "DIMENSION PROFILE")
-    if dominant_traits: c.drawString(right_x, y - 18, "DOMINANT TRAITS")
+    lx = MARGIN + 14
+    rx = MARGIN + CW * 0.43 + 12
 
-    # Vertical divider
+    c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(TEAL_INK)
+    if dim_scores:   c.drawString(lx, y - 20, "DIMENSION PROFILE")
+    if dominant_traits: c.drawString(rx, y - 20, "DOMINANT TRAITS")
+
+    # Vertical divider if both present
     if dim_scores and dominant_traits:
-        hairline(c, MARGIN + CW * 0.42, y - card_h + 12, MARGIN + CW * 0.42, y - 32, STONE_DARK)
+        hairline(c, MARGIN + CW * 0.43, y - card_h + 12,
+                 MARGIN + CW * 0.43, y - 34,
+                 colors.HexColor("#E4E1D8"), 0.5)
 
-    # Radar
     if dim_scores:
-        draw_radar(c, dim_scores, left_x + 70, y - 95, R=56)
+        draw_radar(c, dim_scores, lx + 68, y - 98, R=58)
 
-    # Trait bars
     if dominant_traits:
-        draw_trait_bars(c, dominant_traits, right_x, y - 38,
-                        bar_w=int(CW * 0.50), bar_h=10, gap=8)
+        draw_trait_bars(c, dominant_traits, rx, y - 44,
+                        bar_w=int(CW * 0.48), bar_h=9, gap=9)
 
-    # Suppression signal
     if supp.get("has_suppression"):
-        sx = right_x; sy = y - card_h + 16
+        sx = rx; sy = y - card_h + 18
         lvl = supp.get("suppression_level", 0)
-        c.setFont("Helvetica-Bold", 6.5); c.setFillColor(ROSE)
+        c.setFont("Helvetica-Bold", 6.5)
+        c.setFillColor(ROSE_INK)
         c.drawString(sx, sy + 11, f"SUPPRESSION SIGNAL  —  {lvl}/10")
-        bw_ = int(CW * 0.48)
-        c.saveState(); c.setFillColor(ROSE); c.setFillAlpha(0.12)
-        c.roundRect(sx, sy, bw_, 8, 4, stroke=0, fill=1); c.restoreState()
-        fill_ = max(4, (lvl / 10) * bw_)
-        c.saveState(); c.setFillColor(ROSE); c.setFillAlpha(0.7)
-        c.roundRect(sx, sy, fill_, 8, 4, stroke=0, fill=1); c.restoreState()
+        bw = int(CW * 0.48)
+        filled_rr(c, sx, sy, bw, 8, 4, ROSE_TINT, alpha=0.5)
+        filled_rr(c, sx, sy, max(4, (lvl / 10) * bw), 8, 4, ROSE_INK, alpha=0.5)
 
-    return y - card_h - 16
+    return y - card_h - 18
 
 
-# ── Career cards ───────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# CAREER CARDS — wash backgrounds, score in ink, no solid color headers
+# ─────────────────────────────────────────────────────────────────────────────
 
 def draw_career_cards(c, careers, y, style_name):
     n = min(len(careers), 3)
     if not n: return y
-    gap   = 10
-    cw_   = (CW - gap * (n - 1)) / n
-    card_h = 118
-    if y - card_h < FLOOR:
-        y = new_page(c, style_name)
+    gap = 10
+    cw = (CW - gap * (n - 1)) / n
+    card_h = 124
+    if y - card_h < FLOOR: y = new_page(c, style_name)
 
     for i, career in enumerate(careers[:n]):
-        col   = CAREER_PALETTE[i % len(CAREER_PALETTE)]
-        wash  = CAREER_WASHES[i % len(CAREER_WASHES)]
-        cx_   = MARGIN + i * (cw_ + gap)
-        cy_   = y - card_h
+        ink, wash, tint = CAREER_THEMES[i]
+        cx = MARGIN + i * (cw + gap)
+        cy = y - card_h
 
-        # Card shell
-        filled_rr(c, cx_, cy_, cw_, card_h, 12, WARM_WHITE, stroke_col=col, sw_=0.9)
+        # Card base — white with tinted border
+        card(c, cx, cy, cw, card_h, r=12, bg=WARM_WHITE, border=ink)
 
-        # Coloured top header band
-        c.saveState(); c.setFillColor(col); c.setFillAlpha(1)
-        c.roundRect(cx_, cy_ + card_h - 50, cw_, 50, 12, stroke=0, fill=1)
-        c.rect(cx_, cy_ + card_h - 50, cw_, 24, stroke=0, fill=1)  # square bottom
+        # Soft wash header (no solid fill!)
+        filled_rr(c, cx, cy + card_h - 52, cw, 52, 12, wash)
+        c.saveState()
+        c.setFillColor(wash)
+        c.rect(cx, cy + card_h - 52, cw, 26, stroke=0, fill=1)
         c.restoreState()
 
-        # Domain label
-        domain = (career.get("domain") or "")[:20].upper()
-        c.setFont("Helvetica-Bold", 5.5); c.setFillColor(WARM_WHITE)
-        c.saveState(); c.setFillAlpha(0.65); c.drawString(cx_ + 9, cy_ + card_h - 14, domain); c.restoreState()
+        # Domain
+        domain = (career.get("domain") or "")[:22].upper()
+        c.setFont("Helvetica-Bold", 5.5)
+        c.setFillColor(ink)
+        c.saveState(); c.setFillAlpha(0.7)
+        c.drawString(cx + 10, cy + card_h - 14, domain)
+        c.restoreState()
 
-        # Career name
-        name = re.sub(r'\*\*?', '', career.get("name") or "")
-        words_ = name.split()
-        l1_ = " ".join(words_[:3]); l2_ = " ".join(words_[3:])
-        c.setFont("Helvetica-Bold", 9.5); c.setFillColor(WARM_WHITE)
-        c.drawString(cx_ + 9, cy_ + card_h - 28, l1_[:22])
-        if l2_: c.drawString(cx_ + 9, cy_ + card_h - 39, l2_[:22])
+        # Career name in ink (not white on solid)
+        name = _clean(career.get("name") or "")
+        words = name.split()
+        l1 = " ".join(words[:3]); l2 = " ".join(words[3:])
+        c.setFont("Helvetica-Bold", 9.5)
+        c.setFillColor(INK)
+        c.drawString(cx + 10, cy + card_h - 28, l1[:22])
+        if l2: c.drawString(cx + 10, cy + card_h - 40, l2[:22])
 
-        # Score — large, right-aligned
+        # Score in accent ink
         stxt = f"{career.get('score', 0)}%"
-        c.setFont("Helvetica-Bold", 16); c.setFillColor(WARM_WHITE)
-        c.drawRightString(cx_ + cw_ - 9, cy_ + card_h - 44, stxt)
+        c.setFont("Helvetica-Bold", 16)
+        c.setFillColor(ink)
+        c.drawRightString(cx + cw - 10, cy + card_h - 46, stxt)
 
-        # Society role (body section)
-        soc   = re.sub(r'\*\*?', '', career.get("society_role") or "")
-        c.setFont("Helvetica", 6.8); c.setFillColor(INK_MID)
-        slines = wrap(c, soc, "Helvetica", 6.8, cw_ - 18)
-        sy_   = cy_ + card_h - 62
-        for sl in slines[:3]:
-            c.drawString(cx_ + 9, sy_, sl); sy_ -= 10
+        # Rank badge — tinted chip, not solid
+        badges = ["1ST", "2ND", "3RD"]
+        if i < 3:
+            bw = 28
+            filled_rr(c, cx + cw - bw - 8, cy + card_h - 17, bw, 13, 6, tint, alpha=0.8)
+            c.setFont("Helvetica-Bold", 6)
+            c.setFillColor(ink)
+            c.drawCentredString(cx + cw - 8 - bw / 2, cy + card_h - 10, badges[i])
+
+        # Society role — body text
+        soc = _clean(career.get("society_role") or "")
+        c.setFont("Helvetica", 6.8)
+        c.setFillColor(INK_SOFT)
+        sy = cy + card_h - 64
+        for sl in wrap(c, soc, "Helvetica", 6.8, cw - 20)[:3]:
+            c.drawString(cx + 10, sy, sl); sy -= 10
 
         # Emerging badge
         if career.get("emerging"):
-            filled_rr(c, cx_ + 9, cy_ + 9, 62, 13, 6, SKY_WASH, stroke_col=SKY, sw_=0.7)
-            c.setFont("Helvetica-Bold", 5.5); c.setFillColor(SKY)
-            c.drawString(cx_ + 16, cy_ + 13, "✦ EMERGING")
-
-        # Rank number — subtle
-        badges = ["1ST", "2ND", "3RD"]
-        c.setFont("Helvetica-Bold", 6.5); c.setFillColor(WARM_WHITE)
-        c.saveState(); c.setFillAlpha(0.5)
-        c.drawString(cx_ + cw_ - 30, cy_ + card_h - 15, badges[i] if i < 3 else ""); c.restoreState()
+            filled_rr(c, cx + 10, cy + 9, 62, 13, 6, SKY_TINT, alpha=0.8)
+            c.setFont("Helvetica-Bold", 5.5)
+            c.setFillColor(SKY_INK)
+            c.drawString(cx + 17, cy + 13, "EMERGING")
 
     return y - card_h - 14
 
 
-# ── Roadmap infographic ────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# ROADMAP — light road, tinted flags, ink labels
+# ─────────────────────────────────────────────────────────────────────────────
 
 def draw_roadmap(c, careers, y, style_name):
     steps = careers[:4]; n = len(steps)
     if not n: return y
-    infog_h = 135
-    if y - infog_h < FLOOR:
-        y = new_page(c, style_name)
+    infog_h = 138
+    if y - infog_h < FLOOR: y = new_page(c, style_name)
 
-    step_w_ = CW / n
-    road_y  = y - 62
-    lane_h  = 22
-    rise    = 18
+    step_w = CW / n
+    road_y = y - 64
+    lane_h = 22
+    rise = 18
 
     for i, step in enumerate(steps):
-        col  = ROAD_PALETTE[i % len(ROAD_PALETTE)]
-        wash = CAREER_WASHES[i % len(CAREER_WASHES)]
-        x0_  = MARGIN + i * step_w_
-        x1_  = MARGIN + (i + 1) * step_w_
-        y0_  = road_y - i * rise
-        y1_  = road_y - (i + 1) * rise if i < n - 1 else y0_
-
-        # Road trapezoid — light gray
+        ink, wash, tint = CAREER_THEMES[i]
+        x0 = MARGIN + i * step_w
+        x1 = MARGIN + (i + 1) * step_w
+        y0 = road_y - i * rise
+        y1 = road_y - (i + 1) * rise if i < n - 1 else y0
         half = lane_h / 2
-        pts  = [x0_, y0_ - half, x1_, y1_ - half, x1_, y1_ + half, x0_, y0_ + half]
+
+        # Road — soft parchment fill
+        pts = [x0, y0 - half, x1, y1 - half, x1, y1 + half, x0, y0 + half]
         path = c.beginPath()
-        path.moveTo(pts[0], pts[1])
-        path.lineTo(pts[2], pts[3])
-        path.lineTo(pts[4], pts[5])
-        path.lineTo(pts[6], pts[7])
+        path.moveTo(pts[0], pts[1]); path.lineTo(pts[2], pts[3])
+        path.lineTo(pts[4], pts[5]); path.lineTo(pts[6], pts[7])
         path.close()
-        c.setFillColor(colors.HexColor("#DFE6ED"))
+        c.setFillColor(colors.HexColor("#E8E4DC"))
         c.drawPath(path, stroke=0, fill=1)
-
-        # Road border
-        c.saveState(); c.setStrokeColor(colors.HexColor("#C8D4DC")); c.setLineWidth(0.5)
-        c.drawPath(path, stroke=1, fill=0); c.restoreState()
-
-        # Dashed centre line
-        seg_len = math.sqrt((x1_ - x0_) ** 2 + (y1_ - y0_) ** 2)
-        nd = max(1, int(seg_len / 20))
-        dx_ = (x1_ - x0_) / nd; dy_ = (y1_ - y0_) / nd
-        c.setStrokeColor(WARM_WHITE); c.setLineWidth(1.5)
-        c.saveState(); c.setDash(5, 4)
-        for d in range(nd - 1):
-            c.line(x0_ + d * dx_ + dx_ * .25, y0_ + d * dy_,
-                   x0_ + d * dx_ + dx_ * .65, y0_ + d * dy_ + dy_ * .4)
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#D0CBBF"))
+        c.setLineWidth(0.5)
+        c.drawPath(path, stroke=1, fill=0)
         c.restoreState()
 
-        # Flag pole
-        mid_x    = (x0_ + x1_) / 2
-        mid_y    = (y0_ + y1_) / 2
-        pole_bot = mid_y - half
-        pole_top = pole_bot - 36
-        c.saveState(); c.setStrokeColor(col); c.setLineWidth(1.2); c.setDash(3, 2)
-        c.line(mid_x, pole_bot, mid_x, pole_top + 5); c.restoreState()
+        # Dashes in warm white
+        seg_len = math.sqrt((x1-x0)**2 + (y1-y0)**2)
+        nd = max(1, int(seg_len / 20))
+        dx = (x1-x0)/nd; dy = (y1-y0)/nd
+        c.saveState()
+        c.setStrokeColor(WARM_WHITE)
+        c.setLineWidth(1.5)
+        for d in range(nd - 1):
+            c.line(x0 + d*dx + dx*.2, y0 + d*dy,
+                   x0 + d*dx + dx*.65, y0 + d*dy + dy*.4)
+        c.restoreState()
 
-        # Flag
+        # Flag pole — dashed, in ink color
+        mid_x = (x0 + x1) / 2; mid_y = (y0 + y1) / 2
+        pole_bot = mid_y - half; pole_top = pole_bot - 36
+        c.saveState()
+        c.setStrokeColor(ink)
+        c.setStrokeAlpha(0.6)
+        c.setLineWidth(1.1)
+        c.setDash(3, 2)
+        c.line(mid_x, pole_bot, mid_x, pole_top + 5)
+        c.restoreState()
+
+        # Flag — tinted fill, ink stroke
         fpath = c.beginPath()
         fpath.moveTo(mid_x, pole_top)
         fpath.lineTo(mid_x + 22, (pole_top + pole_top + 18) / 2)
         fpath.lineTo(mid_x, pole_top + 18)
         fpath.close()
-        c.setFillColor(col); c.drawPath(fpath, stroke=0, fill=1)
+        c.saveState()
+        c.setFillColor(tint)
+        c.setFillAlpha(0.9)
+        c.setStrokeColor(ink)
+        c.setStrokeAlpha(0.5)
+        c.setLineWidth(0.6)
+        c.drawPath(fpath, stroke=1, fill=1)
+        c.restoreState()
 
         # Step number
-        num_ = f"0{i+1}"
-        c.setFont("Helvetica-Bold", 15); c.setFillColor(col)
-        nw_  = c.stringWidth(num_, "Helvetica-Bold", 15)
-        c.drawString(mid_x - nw_ / 2 - 8, pole_top - 8, num_)
+        num = f"0{i+1}"
+        c.setFont("Helvetica-Bold", 15)
+        c.setFillColor(ink)
+        nw = c.stringWidth(num, "Helvetica-Bold", 15)
+        c.drawString(mid_x - nw/2 - 8, pole_top - 8, num)
 
-    # Label cards below road
-    label_y = y - infog_h + 10
-    lcard_w = step_w_ - 8
+    # Label cards
+    label_y = y - infog_h + 12
+    lcard_w = step_w - 8
     for i, step in enumerate(steps):
-        col   = ROAD_PALETTE[i % len(ROAD_PALETTE)]
-        wash  = CAREER_WASHES[i % len(CAREER_WASHES)]
-        lx_   = MARGIN + i * step_w_ + 4
-        filled_rr(c, lx_, label_y, lcard_w, 24, 6, wash, stroke_col=col, sw_=0.6)
-        name_ = re.sub(r'\*\*?', '', step.get("name") or f"Step {i+1}")[:22]
-        c.setFont("Helvetica-Bold", 8); c.setFillColor(INK)
-        c.drawString(lx_ + 7, label_y + 13, name_)
-        c.setFont("Helvetica", 7); c.setFillColor(col)
-        c.drawString(lx_ + 7, label_y + 4, f"{step.get('score', 0)}% match")
+        ink, wash, tint = CAREER_THEMES[i]
+        lx = MARGIN + i * step_w + 4
+        filled_rr(c, lx, label_y, lcard_w, 26, 7, wash)
+        c.saveState()
+        c.setStrokeColor(ink)
+        c.setStrokeAlpha(0.3)
+        c.setLineWidth(0.6)
+        c.roundRect(lx, label_y, lcard_w, 26, 7, stroke=1, fill=0)
+        c.restoreState()
+        name = _clean(step.get("name") or f"Step {i+1}")[:22]
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(INK)
+        c.drawString(lx + 8, label_y + 14, name)
+        c.setFont("Helvetica", 7)
+        c.setFillColor(ink)
+        c.drawString(lx + 8, label_y + 5, f"{step.get('score', 0)}% match")
 
-    return y - infog_h - 10
+    return y - infog_h - 12
 
 
-# ── Skill chips ────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# SKILL CHIPS
+# ─────────────────────────────────────────────────────────────────────────────
 
-def draw_chips(c, items, x, y, accent, max_w, style_name):
-    chip_h = 18; px = 11; gap = 6
+def draw_chips(c, items, x, y, ink, tint, max_w, style_name):
+    chip_h = 18; px = 10; gap = 6
     row_x = x; row_y = y
     for item in items:
-        label = (item[:32] if isinstance(item, str) else item.get("label", "")[:32])
+        label = (item[:34] if isinstance(item, str) else item.get("label", "")[:34])
         c.setFont("Helvetica-Bold", 7.5)
-        tw_  = c.stringWidth(label, "Helvetica-Bold", 7.5)
-        cw_  = tw_ + 2 * px
-        if row_x + cw_ > x + max_w:
+        tw = c.stringWidth(label, "Helvetica-Bold", 7.5)
+        cw = tw + 2 * px
+        if row_x + cw > x + max_w:
             row_x = x; row_y -= chip_h + gap
             if row_y < FLOOR:
                 row_y = new_page(c, style_name); row_x = x
-        filled_rr(c, row_x, row_y, cw_, chip_h, chip_h / 2, accent)
-        # Re-draw with proper alpha
-        c.saveState(); c.setFillColor(accent); c.setFillAlpha(0.1)
-        c.roundRect(row_x, row_y, cw_, chip_h, chip_h / 2, stroke=0, fill=1); c.restoreState()
-        stroke_rr(c, row_x, row_y, cw_, chip_h, chip_h / 2, accent, 0.7)
-        c.setFont("Helvetica-Bold", 7.5); c.setFillColor(accent)
+        filled_rr(c, row_x, row_y, cw, chip_h, chip_h/2, tint, alpha=0.7)
+        c.saveState()
+        c.setStrokeColor(ink); c.setStrokeAlpha(0.35); c.setLineWidth(0.6)
+        c.roundRect(row_x, row_y, cw, chip_h, chip_h/2, stroke=1, fill=0)
+        c.restoreState()
+        c.setFont("Helvetica-Bold", 7.5)
+        c.setFillColor(ink)
         c.drawString(row_x + px, row_y + 4.5, label)
-        row_x += cw_ + gap
+        row_x += cw + gap
     return row_y - chip_h - 8
 
 
-# ── Moderate careers ───────────────────────────────────────────────────────────
-
 def draw_moderate(c, moderate, x, y, max_w, style_name):
     if not moderate: return y
-    c.setFont("Helvetica-Bold", 6.5); c.setFillColor(INK_LIGHT)
+    c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(INK_FAINT)
     c.drawString(x, y, "ALSO WORTH EXPLORING")
     y -= 14
     items = [f"{m.get('name','')[:18]}  {m.get('score','')}%" for m in moderate[:6]]
-    return draw_chips(c, items, x, y, PLUM, max_w, style_name)
+    return draw_chips(c, items, x, y, PLUM_INK, PLUM_TINT, max_w, style_name)
 
 
-# ── Conclusion banner ──────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# CONCLUSION BANNER — teal-tinted wash, italic text, no dark bg
+# ─────────────────────────────────────────────────────────────────────────────
 
 def draw_conclusion(c, body, y, style_name):
     paras = [p.strip() for p in re.split(r'\n\n+', body) if p.strip()]
     if not paras: return y
-    total_lines = sum(len(wrap(c, p, "Helvetica-Oblique", 10, CW - 52)) for p in paras)
-    banner_h    = min(total_lines * 16 + 90, H - MARGIN * 2 - 40)
+    total = sum(len(wrap(c, p, "Helvetica-Oblique", 10, CW - 48)) for p in paras)
+    banner_h = min(total * 16 + 88, H - MARGIN * 2 - 40)
     if y - banner_h < FLOOR:
         y = new_page(c, style_name)
-        banner_h = min(total_lines * 16 + 90, H - MARGIN * 2 - 40)
+        banner_h = min(total * 16 + 88, H - MARGIN * 2 - 40)
 
-    by_ = y - banner_h
-    # Light card with teal border
-    filled_rr(c, MARGIN - 4, by_, CW + 8, banner_h, 16, TEAL_WASH,
-               stroke_col=TEAL, sw_=1.2)
+    by = y - banner_h
+    # Outer wash — teal-tinted parchment
+    filled_rr(c, MARGIN - 4, by, CW + 8, banner_h, 16, TEAL_WASH)
+    c.saveState()
+    c.setStrokeColor(TEAL_INK)
+    c.setStrokeAlpha(0.25)
+    c.setLineWidth(0.8)
+    c.roundRect(MARGIN - 4, by, CW + 8, banner_h, 16, stroke=1, fill=0)
+    c.restoreState()
 
-    # Decorative blobs
-    c.saveState(); c.setFillColor(TEAL); c.setFillAlpha(0.08)
-    c.circle(MARGIN + 40, by_ + banner_h - 28, 70, stroke=0, fill=1); c.restoreState()
-    c.saveState(); c.setFillColor(GOLD); c.setFillAlpha(0.07)
-    c.circle(W - MARGIN - 40, by_ + 28, 50, stroke=0, fill=1); c.restoreState()
+    # Decorative circles — very faint
+    c.saveState()
+    c.setFillColor(TEAL_INK); c.setFillAlpha(0.05)
+    c.circle(MARGIN + 40, by + banner_h - 28, 70, stroke=0, fill=1)
+    c.restoreState()
+    c.saveState()
+    c.setFillColor(GOLD_INK); c.setFillAlpha(0.04)
+    c.circle(W - MARGIN - 40, by + 28, 55, stroke=0, fill=1)
+    c.restoreState()
 
     # Star + label
-    c.setFont("Helvetica-Bold", 20); c.setFillColor(TEAL)
-    c.drawCentredString(W / 2, by_ + banner_h - 34, "✦")
-    c.setFont("Helvetica-Bold", 7); c.setFillColor(TEAL)
-    c.drawCentredString(W / 2, by_ + banner_h - 50, "CONCLUSION")
+    c.setFont("Helvetica-Bold", 18)
+    c.setFillColor(TEAL_INK)
+    c.setFillAlpha(0.5)
+    c.drawCentredString(W / 2, by + banner_h - 34, "+")
+    c.setFillAlpha(1.0)
+    c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(TEAL_INK)
+    c.drawCentredString(W / 2, by + banner_h - 50, "CONCLUSION")
 
-    # Text
-    ty_ = by_ + banner_h - 68
+    ty = by + banner_h - 68
     for para in paras:
-        lines_ = wrap(c, para, "Helvetica-Oblique", 10, CW - 52)
-        for line_ in lines_:
-            if ty_ < by_ + 14: break
-            lw_ = c.stringWidth(line_, "Helvetica-Oblique", 10)
-            c.setFont("Helvetica-Oblique", 10); c.setFillColor(INK_MID)
-            c.drawString(MARGIN + (CW - lw_) / 2, ty_, line_); ty_ -= 16
-        ty_ -= 6
+        lines = wrap(c, para, "Helvetica-Oblique", 10, CW - 48)
+        for line in lines:
+            if ty < by + 14: break
+            lw = c.stringWidth(line, "Helvetica-Oblique", 10)
+            c.setFont("Helvetica-Oblique", 10)
+            c.setFillColor(INK_MID)
+            c.drawString(MARGIN + (CW - lw) / 2, ty, line)
+            ty -= 16
+        ty -= 6
 
-    return by_ - 14
+    return by - 14
 
 
-# ── Personal note ──────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# PERSONAL NOTE CARD
+# ─────────────────────────────────────────────────────────────────────────────
 
 def draw_personal_note(c, note_body, y, style_name):
     if not note_body: return y
     paras = [p.strip() for p in re.split(r'\n\n+', note_body) if p.strip()]
-    total_lines = sum(len(wrap(c, p, "Helvetica-Oblique", 9.5, CW - 40)) for p in paras)
-    card_h = min(total_lines * 15 + 72, H - MARGIN * 2 - 40)
+    total = sum(len(wrap(c, p, "Helvetica-Oblique", 9.5, CW - 42)) for p in paras)
+    card_h = min(total * 15 + 76, H - MARGIN * 2 - 40)
     if y - card_h < FLOOR:
         y = new_page(c, style_name)
-        card_h = min(total_lines * 15 + 72, H - MARGIN * 2 - 40)
+        card_h = min(total * 15 + 76, H - MARGIN * 2 - 40)
 
-    cy_ = y - card_h
-    # Card bg
-    filled_rr(c, MARGIN, cy_, CW, card_h, 14, WARM_WHITE, stroke_col=STONE_DARK, sw_=0.8)
-    # Rainbow-ish top accent bar
-    seg_ = CW / 3
-    for i, col_ in enumerate([TEAL, TEAL_MID, GOLD]):
-        c.setFillColor(col_)
-        c.roundRect(MARGIN + i * seg_, cy_ + card_h - 5, seg_, 5, 0, stroke=0, fill=1)
+    cy = y - card_h
+    # Card bg — warm ghost
+    card(c, MARGIN, cy, CW, card_h, r=14, bg=GHOST, border=TEAL_INK)
+
+    # Tricolor top accent rule
+    seg = CW / 3
+    for i, (ink, _, tint) in enumerate(CAREER_THEMES[:3]):
+        filled_rr(c, MARGIN + i * seg, cy + card_h - 4, seg, 4, 0, tint, alpha=0.9)
 
     # Header
-    c.setFont("Helvetica-Bold", 7); c.setFillColor(TEAL_MID)
-    c.drawString(MARGIN + 14, cy_ + card_h - 20, "WRITTEN FOR YOU SPECIFICALLY")
-    c.setFont("Helvetica-Bold", 12); c.setFillColor(INK)
-    c.drawString(MARGIN + 14, cy_ + card_h - 36, "A Personal Note")
-    hairline(c, MARGIN + 14, cy_ + card_h - 40, MARGIN + 140, cy_ + card_h - 40, TEAL_MID, 0.8)
+    c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(TEAL_MID)
+    c.drawString(MARGIN + 14, cy + card_h - 18, "WRITTEN FOR YOU SPECIFICALLY")
+    c.setFont("Helvetica-Bold", 12)
+    c.setFillColor(INK)
+    c.drawString(MARGIN + 14, cy + card_h - 34, "A Personal Note")
+    hairline(c, MARGIN + 14, cy + card_h - 38, MARGIN + 145, cy + card_h - 38,
+             TEAL_TINT, 0.8)
 
-    # Large quote mark
-    c.setFont("Helvetica-Bold", 48); c.setFillColor(TEAL)
-    c.saveState(); c.setFillAlpha(0.08)
-    c.drawString(MARGIN + 14, cy_ + card_h - 58, "\u201c"); c.restoreState()
+    # Big quote mark (very faint)
+    c.saveState()
+    c.setFont("Helvetica-Bold", 52)
+    c.setFillColor(TEAL_INK); c.setFillAlpha(0.06)
+    c.drawString(MARGIN + 14, cy + card_h - 58, "\u201c")
+    c.restoreState()
 
-    # Body text
-    ty_ = cy_ + card_h - 56
+    ty = cy + card_h - 56
     for para in paras:
-        lines_ = wrap(c, para, "Helvetica-Oblique", 9.5, CW - 40)
-        for line_ in lines_:
-            if ty_ < cy_ + 18: break
-            c.setFont("Helvetica-Oblique", 9.5); c.setFillColor(INK_MID)
-            c.drawString(MARGIN + 24, ty_, line_); ty_ -= 15
-        ty_ -= 6
+        lines = wrap(c, para, "Helvetica-Oblique", 9.5, CW - 40)
+        for line in lines:
+            if ty < cy + 20: break
+            c.setFont("Helvetica-Oblique", 9.5)
+            c.setFillColor(INK_MID)
+            c.drawString(MARGIN + 24, ty, line)
+            ty -= 15
+        ty -= 6
 
     # Footer
-    hairline(c, MARGIN + 14, cy_ + 18, MARGIN + CW - 14, cy_ + 18, STONE_DARK)
-    c.setFont("Helvetica-Bold", 6); c.setFillColor(INK_LIGHT)
-    c.drawString(MARGIN + 14, cy_ + 9, "Based on your aptitude test + personal profile")
-    dot(c, MARGIN + CW - 24, cy_ + 11, 3, TEAL_MID)
-    c.setFont("Helvetica-Bold", 6); c.setFillColor(TEAL_MID)
-    c.drawString(MARGIN + CW - 20, cy_ + 9, "Personalised")
+    hairline(c, MARGIN + 14, cy + 20, MARGIN + CW - 14, cy + 20,
+             colors.HexColor("#E4E1D8"))
+    c.setFont("Helvetica-Bold", 6)
+    c.setFillColor(INK_FAINT)
+    c.drawString(MARGIN + 14, cy + 11, "Based on your aptitude test + personal profile")
+    dot(c, MARGIN + CW - 26, cy + 13, 3, TEAL_MID)
+    c.setFont("Helvetica-Bold", 6)
+    c.setFillColor(TEAL_MID)
+    c.drawString(MARGIN + CW - 22, cy + 11, "Personalised")
 
-    return cy_ - 14
+    return cy - 14
 
 
-# ── Section parsers ────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# SECTION PARSERS
+# ─────────────────────────────────────────────────────────────────────────────
 
 def parse_sections(text):
-    parts = re.split(r'(?m)^## ', text)
-    out   = []
+    parts = re.split(r'(?m)^## ', text); out = []
     for part in parts:
         part = part.strip()
         if not part: continue
-        nl   = part.find('\n')
+        nl = part.find('\n')
         head = part[:nl].strip().lstrip('0123456789. ').strip() if nl != -1 else part
         body = part[nl + 1:].strip() if nl != -1 else ''
         out.append({'heading': head, 'body': body})
@@ -777,23 +998,24 @@ def parse_sections(text):
 
 def find_sec(sections, *keys):
     for s in sections:
-        h = s['heading'].lower()
-        if any(k in h for k in keys): return s
+        if any(k in s['heading'].lower() for k in keys): return s
     return {'heading': '', 'body': ''}
 
 
-# ── MAIN ───────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# MAIN ENTRY POINT
+# ─────────────────────────────────────────────────────────────────────────────
 
 def generate_pdf(report_text: str, thinking_style: str, payload: dict = None) -> bytes:
-    payload       = payload or {}
-    buf           = io.BytesIO()
-    top_careers   = payload.get('top_careers',    [])
-    moderate      = payload.get('moderate_careers', [])
-    dim_scores    = payload.get('dimension_scores', {})
-    dominant      = payload.get('dominant_traits', [])
-    supp          = payload.get('suppression',    {})
-    secondary     = payload.get('thinking_style_secondary', '')
-    sections      = parse_sections(report_text)
+    payload      = payload or {}
+    buf          = io.BytesIO()
+    top_careers  = payload.get('top_careers', [])
+    moderate     = payload.get('moderate_careers', [])
+    dim_scores   = payload.get('dimension_scores', {})
+    dominant     = payload.get('dominant_traits', [])
+    supp         = payload.get('suppression', {})
+    secondary    = payload.get('thinking_style_secondary', '')
+    sections     = parse_sections(report_text)
 
     who_sec   = find_sec(sections, 'who you are', 'who')
     hold_sec  = find_sec(sections, 'holding', 'back')
@@ -804,140 +1026,145 @@ def generate_pdf(report_text: str, thinking_style: str, payload: dict = None) ->
     skill_sec = find_sec(sections, 'skillset', 'skill')
     conc_sec  = find_sec(sections, 'conclusion', 'closing')
     note_sec  = find_sec(sections, 'personal note', 'personal', 'a note')
-
-    # Fallback for personal note
-    note_match = re.search(r'## (?:A )?Personal Note\n+([\s\S]+?)(?=\n## |$)',
-                            report_text, re.I)
-    note_body  = note_sec.get('body') or (note_match.group(1).strip() if note_match else '')
+    note_match = re.search(
+        r'## (?:A )?Personal Note\n+([\s\S]+?)(?=\n## |$)', report_text, re.I)
+    note_body = note_sec.get('body') or (note_match.group(1).strip() if note_match else '')
 
     style_name = thinking_style or "Your Profile"
-    c          = rl_canvas.Canvas(buf, pagesize=A4)
+    c = rl_canvas.Canvas(buf, pagesize=A4)
     c.setTitle("WDIG Aptitude Report")
-
     page_num = 1
 
-    # ── PAGE 1: COVER ──────────────────────────────────────────────────────────
-    # Set cream background
-    c.setFillColor(CREAM)
-    c.rect(0, 0, W, H, stroke=0, fill=1)
+    # ── PAGE 1: COVER ────────────────────────────────────────────────────────
     y = draw_cover(c, thinking_style, secondary, top_careers, style_name)
     draw_footer(c, page_num)
 
-    # ── PAGE 2: PROFILE + WHO YOU ARE ─────────────────────────────────────────
+    # ── PAGE 2: PROFILE + WHO YOU ARE ───────────────────────────────────────
     c.showPage(); page_num += 1
-    c.setFillColor(CREAM); c.rect(0, 0, W, H, stroke=0, fill=1)
+    _page_bg(c)
     y = draw_header(c, style_name)
 
     y = draw_dimension_card(c, dim_scores, dominant, supp, y, style_name)
-    y = thin_rule(c, y - 4, STONE_DARK)
+    y = thin_rule(c, y - 4)
 
     if who_sec.get('body'):
-        if y < 150: y = new_page(c, style_name); page_num += 1
-        y = section_head(c, y, who_sec['heading'] or "Who You Are", TEAL, TEAL_WASH)
-        y = pull_quote(c, who_sec['body'], MARGIN, y, CW, TEAL, style_name)
-        rest = '\n\n'.join(p.strip() for p in re.split(r'\n\n+', who_sec['body']) if p.strip())[1:]
-        rest_ = '\n\n'.join([p.strip() for p in re.split(r'\n\n+', who_sec['body']) if p.strip()][1:])
-        if rest_: y = draw_body(c, rest_, MARGIN, y, CW, style_name)
+        if y < 160: y = new_page(c, style_name); page_num += 1
+        y = section_head(c, y, who_sec['heading'] or "Who You Are",
+                         TEAL_INK, TEAL_WASH)
+        y = pull_quote(c, who_sec['body'], MARGIN, y, CW,
+                       TEAL_INK, TEAL_TINT, style_name)
+        rest = '\n\n'.join(
+            [p.strip() for p in re.split(r'\n\n+', who_sec['body']) if p.strip()][1:])
+        if rest: y = draw_body(c, rest, MARGIN, y, CW, style_name)
         y -= 12
 
     draw_footer(c, page_num)
 
-    # ── PAGE 3: HOLDING BACK + WORLD OFFERING ─────────────────────────────────
+    # ── PAGE 3: HOLDING BACK + WORLD OFFERING ───────────────────────────────
     c.showPage(); page_num += 1
-    c.setFillColor(CREAM); c.rect(0, 0, W, H, stroke=0, fill=1)
+    _page_bg(c)
     y = draw_header(c, style_name)
 
     if hold_sec.get('body'):
-        y = section_head(c, y, hold_sec['heading'] or "What's Holding You Back", ROSE, ROSE_WASH)
-        y = pull_quote(c, hold_sec['body'], MARGIN, y, CW, ROSE, style_name)
-        rest_ = '\n\n'.join([p.strip() for p in re.split(r'\n\n+', hold_sec['body']) if p.strip()][1:])
-        if rest_: y = draw_body(c, rest_, MARGIN, y, CW, style_name)
+        y = section_head(c, y, hold_sec['heading'] or "What's Holding You Back",
+                         ROSE_INK, ROSE_WASH)
+        y = pull_quote(c, hold_sec['body'], MARGIN, y, CW,
+                       ROSE_INK, ROSE_TINT, style_name)
+        rest = '\n\n'.join(
+            [p.strip() for p in re.split(r'\n\n+', hold_sec['body']) if p.strip()][1:])
+        if rest: y = draw_body(c, rest, MARGIN, y, CW, style_name)
         y -= 12
 
-    y = thin_rule(c, y, STONE_DARK)
+    y = thin_rule(c, y)
 
     if world_sec.get('body'):
-        if y < 140: y = new_page(c, style_name); page_num += 1
-        y = section_head(c, y, world_sec['heading'] or "What You Offer the World", GOLD, GOLD_WASH)
-        y = pull_quote(c, world_sec['body'], MARGIN, y, CW, GOLD, style_name)
-        rest_ = '\n\n'.join([p.strip() for p in re.split(r'\n\n+', world_sec['body']) if p.strip()][1:])
-        if rest_: y = draw_body(c, rest_, MARGIN, y, CW, style_name)
+        if y < 150: y = new_page(c, style_name); page_num += 1
+        y = section_head(c, y, world_sec['heading'] or "What You Offer the World",
+                         GOLD_INK, GOLD_WASH)
+        y = pull_quote(c, world_sec['body'], MARGIN, y, CW,
+                       GOLD_INK, GOLD_TINT, style_name)
+        rest = '\n\n'.join(
+            [p.strip() for p in re.split(r'\n\n+', world_sec['body']) if p.strip()][1:])
+        if rest: y = draw_body(c, rest, MARGIN, y, CW, style_name)
         y -= 12
 
     draw_footer(c, page_num)
 
-    # ── PAGE 4: CAREERS ────────────────────────────────────────────────────────
+    # ── PAGE 4: CAREERS ──────────────────────────────────────────────────────
     c.showPage(); page_num += 1
-    c.setFillColor(CREAM); c.rect(0, 0, W, H, stroke=0, fill=1)
+    _page_bg(c)
     y = draw_header(c, style_name)
 
     if top_careers:
-        y = section_head(c, y, "Careers Suggested to You", SKY, SKY_WASH)
+        y = section_head(c, y, "Careers Suggested to You", SKY_INK, SKY_WASH)
         y = draw_career_cards(c, top_careers, y, style_name)
-        if moderate:
-            y = draw_moderate(c, moderate, MARGIN, y, CW, style_name)
-            y -= 8
+        if moderate: y = draw_moderate(c, moderate, MARGIN, y, CW, style_name); y -= 8
         if car_sec.get('body'):
             paras_ = [p.strip() for p in re.split(r'\n\n+', car_sec['body']) if p.strip()]
             for para_ in paras_[:4]:
                 if y < FLOOR: y = new_page(c, style_name); page_num += 1
-                y = draw_block(c, para_, MARGIN, y, "Helvetica", BODY_SZ,
-                               INK_MID, CW, style_name=style_name)
+                y = draw_block(c, para_, MARGIN, y, "Helvetica",
+                               BODY_SZ, INK_MID, CW, style_name=style_name)
                 y -= 8
         y -= 12
 
     draw_footer(c, page_num)
 
-    # ── PAGE 5: ROADMAP + EDUCATION ───────────────────────────────────────────
+    # ── PAGE 5: ROADMAP + EDUCATION ──────────────────────────────────────────
     c.showPage(); page_num += 1
-    c.setFillColor(CREAM); c.rect(0, 0, W, H, stroke=0, fill=1)
+    _page_bg(c)
     y = draw_header(c, style_name)
 
-    y = section_head(c, y, "Career Roadmap", PLUM, PLUM_WASH)
+    y = section_head(c, y, "Career Roadmap", PLUM_INK, PLUM_WASH)
     y = draw_roadmap(c, top_careers, y, style_name)
-    if road_sec.get('body'):
-        y = draw_body(c, road_sec['body'], MARGIN, y, CW, style_name)
-    y = thin_rule(c, y - 8, STONE_DARK)
+    if road_sec.get('body'): y = draw_body(c, road_sec['body'], MARGIN, y, CW, style_name)
+    y = thin_rule(c, y - 8)
 
     if edu_sec.get('body'):
-        if y < 140: y = new_page(c, style_name); page_num += 1
-        y = section_head(c, y, edu_sec['heading'] or "Educational Pathway", TEAL, TEAL_WASH)
-        y = pull_quote(c, edu_sec['body'], MARGIN, y, CW, TEAL, style_name)
-        rest_ = '\n\n'.join([p.strip() for p in re.split(r'\n\n+', edu_sec['body']) if p.strip()][1:])
-        if rest_: y = draw_body(c, rest_, MARGIN, y, CW, style_name)
-        # Stream chips
+        if y < 150: y = new_page(c, style_name); page_num += 1
+        y = section_head(c, y, edu_sec['heading'] or "Educational Pathway",
+                         TEAL_INK, TEAL_WASH)
+        y = pull_quote(c, edu_sec['body'], MARGIN, y, CW,
+                       TEAL_INK, TEAL_TINT, style_name)
+        rest = '\n\n'.join(
+            [p.strip() for p in re.split(r'\n\n+', edu_sec['body']) if p.strip()][1:])
+        if rest: y = draw_body(c, rest, MARGIN, y, CW, style_name)
         streams = list({s for career in top_careers[:3] for s in (career.get('stream') or [])})
         if streams:
-            c.setFont("Helvetica-Bold", 6.5); c.setFillColor(INK_LIGHT)
+            c.setFont("Helvetica-Bold", 6.5)
+            c.setFillColor(INK_FAINT)
             c.drawString(MARGIN, y, "RECOMMENDED STREAMS")
             y -= 13
-            y = draw_chips(c, streams[:8], MARGIN, y, TEAL, CW, style_name)
+            y = draw_chips(c, streams[:8], MARGIN, y, TEAL_INK, TEAL_TINT, CW, style_name)
 
     draw_footer(c, page_num)
 
-    # ── PAGE 6: SKILLS + CONCLUSION + PERSONAL NOTE ───────────────────────────
+    # ── PAGE 6: SKILLS + CONCLUSION + PERSONAL NOTE ──────────────────────────
     c.showPage(); page_num += 1
-    c.setFillColor(CREAM); c.rect(0, 0, W, H, stroke=0, fill=1)
+    _page_bg(c)
     y = draw_header(c, style_name)
 
     if skill_sec.get('body'):
-        y = section_head(c, y, skill_sec['heading'] or "Skillset to Build", GOLD, GOLD_WASH)
+        y = section_head(c, y, skill_sec['heading'] or "Skillset to Build",
+                         GOLD_INK, GOLD_WASH)
         raw_lines = skill_sec['body'].split('\n')
-        chip_items = []
-        for l_ in raw_lines:
-            l_ = l_.strip().lstrip('-•*0123456789. ')
-            if l_ and len(l_) > 4:
-                chip_items.append(l_[:36])
+        chip_items = [
+            l.strip().lstrip('-•*0123456789. ')[:36]
+            for l in raw_lines
+            if l.strip().lstrip('-•*0123456789. ') and len(l.strip()) > 4
+        ]
         if chip_items:
-            c.setFont("Helvetica-Bold", 6.5); c.setFillColor(INK_LIGHT)
+            c.setFont("Helvetica-Bold", 6.5)
+            c.setFillColor(INK_FAINT)
             c.drawString(MARGIN, y, "KEY SKILLS TO DEVELOP")
             y -= 13
-            y = draw_chips(c, chip_items[:8], MARGIN, y, GOLD, CW, style_name)
+            y = draw_chips(c, chip_items[:8], MARGIN, y,
+                           GOLD_INK, GOLD_TINT, CW, style_name)
             y -= 4
         y = draw_body(c, skill_sec['body'], MARGIN, y, CW, style_name)
         y -= 12
 
-    y = thin_rule(c, y, TEAL)
+    y = thin_rule(c, y, TEAL_TINT)
 
     if conc_sec.get('body'):
         if y < 130: y = new_page(c, style_name); page_num += 1
