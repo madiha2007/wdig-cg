@@ -185,7 +185,7 @@ export default function LoginPage() {
           position: relative;
           overflow: hidden;
           border-radius: 20px;
-          background-image: url('/bg10.jpg');
+          background-image: url('/dashboard_img.avif');
           background-size: cover;
           background-position: center;
           min-height: 80vh;
@@ -541,7 +541,7 @@ export default function LoginPage() {
         <div
           className="right-panel"
           style={{
-            backgroundImage: "url('/bg10.jpg')",
+            backgroundImage: "url('/dashboard_img.avif')",
           }}
         />
 
