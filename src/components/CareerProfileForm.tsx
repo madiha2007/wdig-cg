@@ -4,6 +4,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "../../firebase";
 import { Suspense } from "react";
 
+const API =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 // ── Design tokens — matches your report.js T object exactly ──────────────────
 const T = {
   ink: "#0D1B2A", inkMid: "#2C3E50", inkLight: "#5D7A8A",
@@ -219,7 +222,7 @@ function CareerProfileFormInner() {
       setUid(user.uid);
 
       // Load existing profile if any
-      fetch(`process.env.NEXT_PUBLIC_API_URL/profile/${user.uid}`)
+      fetch(`${API}/api/profile/${user.uid}`)
         .then(r => r.json())
         .then(({ profile }) => {
           if (profile) {
@@ -257,7 +260,7 @@ function CareerProfileFormInner() {
     if (!uid) return;
     setSaving(true);
     try {
-      const res = await fetch('process.env.NEXT_PUBLIC_API_URL', {
+      const res = await fetch(`${API}/api/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
