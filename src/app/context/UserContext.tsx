@@ -5,7 +5,7 @@ import React, {
 } from "react";
 import { auth } from "../../../firebase"; // auth only — no db import
 
-const API = "http://localhost:5000"; // your Node server
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"; // your Node server
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 export interface UserData {
