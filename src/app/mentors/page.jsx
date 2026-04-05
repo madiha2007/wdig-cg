@@ -10,7 +10,7 @@ export default function MentorPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* HEADER */}
-      <section className="text-center py-14 px-4">
+      <section className="text-center py-28 px-4">
         <h1 className="text-4xl font-extrabold mb-3">
           Mentorship   {"\t"}            
           <span className="bg-gradient-to-r from-purple-500 to-pink-500" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>

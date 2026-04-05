@@ -28,7 +28,7 @@ export default function OneOnOneMentorsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* HEADER */}
-      <section className="text-center py-12 px-4">
+      <section className="text-center pt-24 py-12 px-4">
         <h1 className="text-4xl font-extrabold mb-2">
           Find Your Perfect 1-on-1 <span className="text-sky-600">Mentors</span>
         </h1>

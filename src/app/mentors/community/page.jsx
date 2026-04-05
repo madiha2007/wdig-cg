@@ -28,7 +28,7 @@ export default function CommunitySessionsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* HEADER */}
-      <section className="text-center py-12 px-4">
+      <section className="text-center pt-22 px-4 py-4">
         <h1 className="text-4xl font-extrabold mb-2">
           Community <span className="text-fuchsia-600">Sessions</span>
         </h1>

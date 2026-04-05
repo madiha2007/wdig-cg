@@ -149,8 +149,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const fetchAll = useCallback(async (firebaseUser: any) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/user/${firebaseUser.uid}/full`);
-      if (!res.ok) throw new Error("Failed to fetch user data");
+const res = await fetch(`${API}/api/user/${firebaseUser.uid}/full`);
+
+console.log("STATUS:", res.status);
+
+if (!res.ok) {
+  const text = await res.text();
+  console.error("BACKEND RESPONSE:", text);
+  throw new Error("Failed to fetch user data");
+}
       const data = await res.json();
 
       /* ── user row → userData ── */
