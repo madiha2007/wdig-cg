@@ -7,7 +7,6 @@ import { Linkedin, Github, Instagram, Facebook, Twitter } from "lucide-react";
 const QUICK_LINKS = [
   { href: "/",         label: "Home"            },
   { href: "/aptitude", label: "Aptitude Test"   },
-  { href: "/chatbot",  label: "AI Chatbot"      },
   { href: "/explore",  label: "Explore Careers" },
 ];
 

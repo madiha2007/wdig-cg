@@ -44,7 +44,7 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
                 </p>
               </div>
               {/* Hover hint */}
-              <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute top-4 right-4 bg-black/20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 Tap to learn more
               </div>
             </div>

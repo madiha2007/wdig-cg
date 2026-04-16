@@ -88,7 +88,7 @@ export default function CommunitySessionsPage() {
 
       {/* SESSIONS GRID */}
       <section className="px-4 md:px-20 pb-20">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {filteredSessions.map((session) => (
             <div
               key={session.id}
