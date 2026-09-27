@@ -188,7 +188,13 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-function CareerProfileFormInner() {
+interface CareerProfileFormInnerProps {
+  // Reports live completion percentage upward — ProfileGate uses this to
+  // drive the progress bar it now renders in its own header section.
+  onProgressChange?: (progress: number) => void;
+}
+
+function CareerProfileFormInner({ onProgressChange }: CareerProfileFormInnerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromTest = searchParams.get("from") === "aptitude";
@@ -255,6 +261,11 @@ function CareerProfileFormInner() {
     skills.length > 0, freeTime.length > 0, success, vision].filter(Boolean).length;
   const totalBlocks = 9;
   const progress = Math.round((filledBlocks / totalBlocks) * 100);
+
+  // Report completion up to ProfileGate, which now owns the progress bar UI.
+  useEffect(() => {
+    onProgressChange?.(progress);
+  }, [progress, onProgressChange]);
 
   const handleSave = async () => {
     if (!uid) return;
@@ -324,68 +335,10 @@ function CareerProfileFormInner() {
         background: T.cream, minHeight: "100vh", color: T.ink,
       }}>
 
-        {/* ── Hero header ── */}
-        <div style={{
-          background: `linear-gradient(160deg, ${T.ink} 0%, #0D2E3A 60%, #1A3A4A 100%)`,
-          padding: "2.5rem 2rem 3rem", position: "relative", overflow: "hidden",
-        }}>
-          {/* Background blobs */}
-          {[["-60px","auto","-60px","auto",300,T.teal,0.08],["-40px","auto","auto","-40px",200,T.gold,0.07]].map(
-            ([t,b,r,l,sz,col,op]: any[], i) => (
-              <div key={i} style={{
-                position:"absolute",top:t,bottom:b,right:r,left:l,
-                width:sz,height:sz,borderRadius:"50%",
-                background:`radial-gradient(circle,${col}${Math.round(op*255).toString(16).padStart(2,"0")},transparent 65%)`,
-                pointerEvents:"none",
-              }}/>
-            )
-          )}
-
-          <div style={{ maxWidth: 680, margin: "0 auto", position: "relative" }}>
-            <button onClick={() => router.back()} style={{
-              background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)",
-              color: "rgba(255,255,255,0.6)", padding: "0.4rem 0.9rem",
-              borderRadius: 10, cursor: "pointer", fontSize: "0.78rem",
-              fontFamily: "system-ui", marginBottom: "1.5rem", display: "inline-block",
-            }}>← Back</button>
-
-            <div style={{
-              fontSize: "0.58rem", fontWeight: 800, letterSpacing: "0.28em",
-              textTransform: "uppercase", color: T.tealMid, marginBottom: "0.6rem",
-            }}>Your Profile</div>
-
-            <h1 style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "clamp(1.8rem, 4vw, 2.6rem)",
-              fontWeight: 800, color: T.white, lineHeight: 1.1, marginBottom: "0.75rem",
-            }}>Tell us who you are</h1>
-
-            <p style={{
-              color: "rgba(255,255,255,0.55)", fontSize: "0.88rem",
-              lineHeight: 1.7, maxWidth: 480,
-            }}>
-              This helps us personalise your career report. Takes 2–3 minutes.
-              Your answers are private and only used to improve your recommendations.
-            </p>
-
-            {/* Progress bar */}
-            <div style={{ marginTop: "1.75rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>Profile completion</span>
-                <span style={{ fontSize: "0.72rem", color: T.tealMid, fontWeight: 700 }}>{progress}%</span>
-              </div>
-              <div style={{ height: 5, background: "rgba(255,255,255,0.08)", borderRadius: 999, overflow: "hidden" }}>
-                <div style={{
-                  height: "100%", width: `${progress}%`, borderRadius: 999,
-                  background: `linear-gradient(90deg, ${T.tealMid}, ${T.gold})`,
-                  transition: "width .5s cubic-bezier(.16,1,.3,1)",
-                }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* ── Form body ── */}
+        {/* Note: the hero header (eyebrow / title / description / progress bar)
+            that used to live here now renders in ProfileGate's modal header,
+            fed live via the onProgressChange callback above. */}
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "2.5rem 1.5rem 6rem" }}>
 
           {/* BLOCK 1 — Stage */}
@@ -536,60 +489,40 @@ function CareerProfileFormInner() {
             </div>
           </div>
 
-          {/* BLOCK 6 — Secret (most valuable for AI) */}
+          {/* BLOCK 6 — Secret (most valuable for AI) — recolored light, no more dark card */}
           <div style={{
-            background: `linear-gradient(160deg, ${T.ink}, #0D2E3A)`,
-            borderRadius: 24, padding: "1.75rem", marginBottom: "2rem",
-            position: "relative", overflow: "hidden",
+            background: T.white, borderRadius: 24, border: `1px solid ${T.teal}18`,
+            padding: "1.75rem", marginBottom: "2rem",
+            boxShadow: `0 4px 24px ${T.teal}08`,
             animation: "fadeUp .5s ease .3s both",
           }}>
-            <div style={{
-              position: "absolute", inset: 0,
-              background: `radial-gradient(circle at 20% 50%, ${T.teal}12, transparent 50%), radial-gradient(circle at 80% 20%, ${T.gold}0f, transparent 45%)`,
-              pointerEvents: "none",
-            }} />
-            <div style={{ position: "relative" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", marginBottom: "1.25rem" }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: `${T.tealMid}20`, border: `1.5px solid ${T.tealMid}40`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.72rem", fontWeight: 800, color: T.tealMid,
-                  fontFamily: "Georgia, serif",
-                }}>07</div>
-                <h3 style={{
-                  fontFamily: "'Playfair Display', Georgia, serif",
-                  fontSize: "1.05rem", fontWeight: 700, color: T.white, margin: 0,
-                }}>The honest part</h3>
-                <div style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${T.tealMid}30, transparent)` }} />
-              </div>
+            <BlockHeader number="07" title="The honest part" accent={T.teal} />
 
-              <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.4)", marginBottom: "0.6rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                Something you've always wanted to do but never said out loud
-              </p>
-              <textarea value={dream} onChange={e => setDream(e.target.value)}
-                placeholder="e.g. write a book, build a startup, travel and work, become a filmmaker…"
-                rows={3} style={{
-                  width: "100%", background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12,
-                  padding: "0.85rem 1rem", color: T.white, fontSize: "0.88rem",
-                  lineHeight: 1.6, resize: "vertical", marginBottom: "1.25rem",
-                }}
-              />
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, color: T.inkLight, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>
+              Something you've always wanted to do but never said out loud
+            </p>
+            <textarea value={dream} onChange={e => setDream(e.target.value)}
+              placeholder="e.g. write a book, build a startup, travel and work, become a filmmaker…"
+              rows={3} style={{
+                width: "100%", background: T.white,
+                border: "1.5px solid #e2e8f0", borderRadius: 12,
+                padding: "0.85rem 1rem", color: T.ink, fontSize: "0.88rem",
+                lineHeight: 1.6, resize: "vertical", marginBottom: "1.25rem",
+              }}
+            />
 
-              <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.4)", marginBottom: "0.6rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                What's stopping you from pursuing it?
-              </p>
-              <textarea value={blocker} onChange={e => setBlocker(e.target.value)}
-                placeholder="e.g. parents expect something else, don't know where to start, financial pressure…"
-                rows={3} style={{
-                  width: "100%", background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12,
-                  padding: "0.85rem 1rem", color: T.white, fontSize: "0.88rem",
-                  lineHeight: 1.6, resize: "vertical",
-                }}
-              />
-            </div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, color: T.inkLight, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.6rem" }}>
+              What's stopping you from pursuing it?
+            </p>
+            <textarea value={blocker} onChange={e => setBlocker(e.target.value)}
+              placeholder="e.g. parents expect something else, don't know where to start, financial pressure…"
+              rows={3} style={{
+                width: "100%", background: T.white,
+                border: "1.5px solid #e2e8f0", borderRadius: 12,
+                padding: "0.85rem 1rem", color: T.ink, fontSize: "0.88rem",
+                lineHeight: 1.6, resize: "vertical",
+              }}
+            />
           </div>
 
           {/* ── Save button ── */}
@@ -640,13 +573,10 @@ function CareerProfileFormInner() {
       </div>
     </>
   );
-
-  // ... rest of your entire existing component code (useState, useEffect, return, etc.)
-  // Everything stays exactly the same — just moved inside this function
 }
 
 
-export default function CareerProfileForm() {
+export default function CareerProfileForm({ onProgressChange }: CareerProfileFormInnerProps) {
   return (
     <Suspense fallback={
       <div style={{
@@ -659,7 +589,7 @@ export default function CareerProfileForm() {
         </p>
       </div>
     }>
-      <CareerProfileFormInner />
+      <CareerProfileFormInner onProgressChange={onProgressChange} />
     </Suspense>
   );
 }

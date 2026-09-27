@@ -14,13 +14,15 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^7.8.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "express": "^4.22.1",
     "groq-sdk": "^0.37.0",
     "indian-colleges": "^1.1.1",
     "openai": "^6.32.0",
-    "pg": "^8.19.0",
+    "pg": "^8.21.0",
+    "prisma": "^7.8.0",
     "puppeteer": "^24.38.0"
   },
   "devDependencies": {

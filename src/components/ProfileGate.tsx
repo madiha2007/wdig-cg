@@ -20,6 +20,20 @@ const T = {
   white: "#FFFFFF",
 };
 
+// Refined palette: deep charcoal text, muted sage/teal accent, warm off-white surfaces.
+const COLORS = {
+  overlay: "rgba(18, 24, 22, 0.34)",
+  boxBg: "#FDFCFA",
+  headerBg: "#FAF8F4",
+  border: "rgba(19, 31, 28, 0.09)",
+  accent: "#4B7A6C",
+  accentSoft: "rgba(75, 122, 108, 0.10)",
+  textPrimary: "#16211E",
+  textMuted: "rgba(22, 33, 30, 0.60)",
+  textFaint: "rgba(22, 33, 30, 0.40)",
+  shadow: "0 24px 64px -16px rgba(18,28,26,0.28), 0 8px 20px -8px rgba(18,28,26,0.10)",
+};
+
 interface Props {
   children: React.ReactNode;
 }
@@ -83,34 +97,37 @@ function CheckingScreen() {
     <div
       style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg, ${T.ink}, #0D2E3A)`,
+        background: COLORS.boxBg,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 16,
+        gap: 18,
+        padding: "24px",
       }}
     >
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
         @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         @keyframes spin { to{transform:rotate(360deg)} }
       `}</style>
       <div
         style={{
-          width: 48,
-          height: 48,
+          width: 40,
+          height: 40,
           borderRadius: "50%",
-          border: `3px solid ${T.teal}30`,
-          borderTop: `3px solid ${T.tealMid}`,
-          animation: "spin 0.9s linear infinite",
+          border: `2.5px solid ${COLORS.border}`,
+          borderTop: `2.5px solid ${COLORS.accent}`,
+          animation: "spin 0.85s linear infinite",
         }}
       />
       <p
         style={{
-          color: "rgba(255,255,255,0.45)",
+          color: COLORS.textMuted,
           fontFamily: "'Plus Jakarta Sans', system-ui",
-          fontSize: "0.85rem",
-          letterSpacing: "0.02em",
+          fontSize: "0.9rem",
+          letterSpacing: "0.01em",
+          margin: 0,
         }}
       >
         Getting things ready…
@@ -121,228 +138,201 @@ function CheckingScreen() {
 
 /* ── Profile Modal — full-screen, non-dismissable ───────────────────────── */
 function ProfileModal({ onComplete }: { onComplete: () => void }) {
+  // Live completion percentage, reported up by the form via onProgressChange.
+  const [progress, setProgress] = useState(0);
+
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        background: "rgba(8, 15, 25, 0.82)",
+        background: COLORS.overlay,
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
         display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        overflowY: "auto",
-        overflowX: "hidden",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        overflow: "hidden",
+        padding: "clamp(16px, 4vw, 48px) 20px",
+        boxSizing: "border-box",
       }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-        @keyframes modalSlideUp {
-          from { opacity: 0; transform: translateY(40px) scale(0.98); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes headerFadeIn {
-          from { opacity: 0; transform: translateY(-12px); }
+        @keyframes modalIn {
+          from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes stepPop {
-          0%   { transform: scale(0.85); opacity: 0; }
-          60%  { transform: scale(1.05); }
-          100% { transform: scale(1); opacity: 1; }
+
+        @media (max-width: 640px) {
+          .pg-modal-card { border-radius: 16px !important; }
+          .pg-modal-header { padding: 24px 22px 20px !important; }
+          .pg-modal-body { padding: 22px 22px 28px !important; }
         }
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes pulse-border {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(10,123,107,0.3); }
-          50%       { box-shadow: 0 0 0 6px rgba(10,123,107,0); }
+
+        @media (min-width: 641px) and (max-width: 1024px) {
+          .pg-modal-header { padding: 30px 32px 22px !important; }
+          .pg-modal-body { padding: 26px 32px 32px !important; }
         }
       `}</style>
 
-      {/* ── Sticky header ── */}
+      {/* ── The box: same top spacing/behavior, refined visual treatment ── */}
       <div
+        className="pg-modal-card"
         style={{
           width: "100%",
-          background: `linear-gradient(160deg, #0B1E2D 0%, #0D2E3A 60%, #0B2228 100%)`,
-          padding: "32px 24px 28px",
-          textAlign: "center",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
-          animation: "headerFadeIn 0.5s cubic-bezier(.16,1,.3,1) both",
+          maxWidth: 640,
+          maxHeight: "100%",
+          display: "flex",
+          flexDirection: "column",
+          background: COLORS.boxBg,
+          borderRadius: 22,
+          border: `1px solid ${COLORS.border}`,
+          boxShadow: COLORS.shadow,
+          overflow: "hidden",
+          animation: "modalIn 0.42s cubic-bezier(.16,1,.3,1) both",
         }}
       >
-        {/* Lock badge */}
+        {/* ── Header — moved up from the form's hero section, recolored light ── */}
         <div
+          className="pg-modal-header"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            background: `${T.teal}18`,
-            border: `1.5px solid ${T.teal}35`,
-            borderRadius: 999,
-            padding: "6px 16px",
-            marginBottom: 18,
-            animation: "pulse-border 2.5s ease-in-out infinite",
+            padding: "36px 40px 26px",
+            textAlign: "left",
+            borderBottom: `1px solid ${COLORS.border}`,
+            background: COLORS.headerBg,
+            flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: "0.8rem" }}>🔒</span>
-          <span
+          <div
             style={{
-              fontSize: "0.6rem",
-              fontWeight: 800,
+              fontSize: "0.64rem",
+              fontWeight: 700,
               letterSpacing: "0.22em",
               textTransform: "uppercase",
-              color: T.tealMid,
+              color: COLORS.accent,
+              marginBottom: 10,
               fontFamily: "'Plus Jakarta Sans', system-ui",
             }}
           >
-            Required before your assessment
-          </span>
-        </div>
+            Your Profile
+          </div>
 
-        <h1
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            fontWeight: 800,
-            color: T.white,
-            lineHeight: 1.2,
-            margin: "0 0 12px",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          Tell us a bit about yourself first
-        </h1>
+          <h1
+            style={{
+              fontFamily: "'Fraunces', serif",
+              fontSize: "clamp(1.5rem, 3.4vw, 2rem)",
+              fontWeight: 600,
+              color: COLORS.textPrimary,
+              lineHeight: 1.2,
+              margin: "0 0 12px",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Tell us who you are
+          </h1>
 
-        <p
-          style={{
-            color: "rgba(255,255,255,0.42)",
-            fontSize: "0.875rem",
-            lineHeight: 1.75,
-            maxWidth: 480,
-            margin: "0 auto 24px",
-            fontFamily: "'Plus Jakarta Sans', system-ui",
-          }}
-        >
-          Your results will be deeply personalised based on your situation.
-          This takes about 2 minutes and only needs to be done once.
-        </p>
+          <p
+            style={{
+              color: COLORS.textMuted,
+              fontSize: "0.88rem",
+              lineHeight: 1.7,
+              maxWidth: 480,
+              margin: "0 0 24px",
+              fontFamily: "'Plus Jakarta Sans', system-ui",
+            }}
+          >
+            This helps us personalise your career report. Takes 2–3 minutes.
+            Your answers are private and only used to improve your
+            recommendations.
+          </p>
 
-        {/* Step indicators */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 0,
-          }}
-        >
-          {[
-            { label: "Who you are", icon: "👤" },
-            { label: "Your situation", icon: "🌍" },
-            { label: "Your goals", icon: "🎯" },
-          ].map((step, i) => (
+          {/* Progress bar */}
+          <div>
             <div
-              key={i}
-              style={{ display: "flex", alignItems: "center", gap: 0 }}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: 6,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.64rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: COLORS.textFaint,
+                  fontFamily: "'Plus Jakarta Sans', system-ui",
+                }}
+              >
+                Profile completion
+              </span>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: COLORS.accent,
+                  fontFamily: "'Plus Jakarta Sans', system-ui",
+                }}
+              >
+                {progress}%
+              </span>
+            </div>
+            <div
+              style={{
+                height: 5,
+                background: COLORS.border,
+                borderRadius: 999,
+                overflow: "hidden",
+              }}
             >
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  animation: `stepPop 0.4s cubic-bezier(.16,1,.3,1) ${i * 0.1}s both`,
+                  height: "100%",
+                  width: `${progress}%`,
+                  borderRadius: 999,
+                  background: COLORS.accent,
+                  transition: "width .5s cubic-bezier(.16,1,.3,1)",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Form body — scrolls when content exceeds the box ── */}
+        <div
+          className="pg-modal-body"
+          style={{
+            padding: "30px 40px 40px",
+            background: COLORS.boxBg,
+            overflowY: "auto",
+            flex: "1 1 auto",
+          }}
+        >
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "64px 0",
+                  color: COLORS.textFaint,
+                  fontFamily: "'Plus Jakarta Sans', system-ui",
+                  fontSize: "0.85rem",
                 }}
               >
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: "50%",
-                    background: `${T.teal}20`,
-                    border: `1.5px solid ${T.teal}40`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  {step.icon}
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.68rem",
-                    color: "rgba(255,255,255,0.38)",
-                    fontWeight: 600,
-                    fontFamily: "'Plus Jakarta Sans', system-ui",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  {step.label}
-                </span>
+                Loading profile form…
               </div>
-              {i < 2 && (
-                <div
-                  style={{
-                    width: 28,
-                    height: 1,
-                    background: "rgba(255,255,255,0.1)",
-                    margin: "0 8px",
-                  }}
-                />
-              )}
-            </div>
-          ))}
+            }
+          >
+            <CareerProfileFormClientWithCallback
+              onComplete={onComplete}
+              onProgressChange={setProgress}
+            />
+          </Suspense>
         </div>
-      </div>
-
-      {/* ── Form body ── */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 800,
-          padding: "36px 24px 80px",
-          animation: "modalSlideUp 0.55s cubic-bezier(.16,1,.3,1) 0.1s both",
-        }}
-      >
-        {/* Decorative top accent on the form area */}
-        <div
-          style={{
-            height: 3,
-            borderRadius: 99,
-            background: `linear-gradient(90deg, transparent, ${T.teal}, ${T.tealMid}, ${T.gold}, transparent)`,
-            backgroundSize: "200% auto",
-            animation: "shimmer 3s linear infinite",
-            marginBottom: 28,
-            opacity: 0.6,
-          }}
-        />
-
-        <Suspense
-          fallback={
-            <div
-              style={{
-                textAlign: "center",
-                padding: "80px 0",
-                color: "rgba(255,255,255,0.25)",
-                fontFamily: "'Plus Jakarta Sans', system-ui",
-                fontSize: "0.85rem",
-              }}
-            >
-              Loading profile form…
-            </div>
-          }
-        >
-          <CareerProfileFormClientWithCallback onComplete={onComplete} />
-        </Suspense>
       </div>
     </div>
   );
@@ -351,8 +341,10 @@ function ProfileModal({ onComplete }: { onComplete: () => void }) {
 /* ── Wrapper that calls onComplete after successful save ─────────────────── */
 function CareerProfileFormClientWithCallback({
   onComplete,
+  onProgressChange,
 }: {
   onComplete: () => void;
+  onProgressChange?: (progress: number) => void;
 }) {
   useEffect(() => {
     // Poll every 2s — once the form saves, the API returns completed: true
@@ -376,7 +368,5 @@ function CareerProfileFormClientWithCallback({
     return () => clearInterval(interval);
   }, [onComplete]);
 
-  // If CareerProfileFormClient accepts onComplete, pass it directly:
-  // return <CareerProfileFormClient onComplete={onComplete} />;
-  return <CareerProfileFormClient />;
-} 
+  return <CareerProfileFormClient onProgressChange={onProgressChange} />;
+}
