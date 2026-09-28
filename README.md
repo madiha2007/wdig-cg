@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎓 WDIG — AI-Powered Career Guidance Platform
 
-## Getting Started
+**WDIG (What Do I Go for)** is an advanced, full-stack career guidance platform leveraging psychometric aptitude modeling, unsupervised machine learning clustering, AI-powered report synthesis, and continuous self-learning feedback loops.
 
-First, run the development server:
+---
 
+## 📚 Documentation Quick Links
+
+- 📖 **[Comprehensive System Architecture & Documentation (PROJECT_DOCUMENTATION.md)](PROJECT_DOCUMENTATION.md)**: Full guide covering Next.js frontend, Express backend, Python ML engine, PostgreSQL schema (`wdig_schema.sql`), API contracts, and user workflows.
+- 📋 **[ML System Summary (PROJECT_SUMMARY.md)](PROJECT_SUMMARY.md)**: In-depth ML implementation, 8 thinking style classifications, feature engineering, and inference pipelines.
+
+---
+
+## ⚡ Quick Start
+
+### 1. Prerequisites
+- **Node.js**: v18+
+- **Python**: v3.10+
+- **PostgreSQL**: v14+
+
+### 2. Database Initialization
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+psql -U postgres -c "CREATE DATABASE wdig_db;"
+psql -U postgres -d wdig_db -f wdig_schema.sql
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Backend Express Server (Port 5000)
+```bash
+cd backend
+npm install
+npm start
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Machine Learning Engine (Port 8001)
+```bash
+cd ml
+python -m venv venv
+# Activate venv:
+# Windows: venv\Scripts\activate | Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 5. Frontend Client (Port 3000)
+```bash
+# In the root directory
+npm install
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🏗️ Core Architecture Overview
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+WDIG Ecosystem
+│
+├── 🌐 Next.js 15 Frontend (`src/`)       --> React 19, Tailwind CSS v4, Framer Motion
+├── ⚙️ Express Backend Server (`backend/`)  --> Node.js, PostgreSQL `pg`, Puppeteer PDF Engine
+├── 🧠 Python ML Engine (`ml/`)           --> Agglomerative Hierarchical Clustering, Self-Learning
+└── 🗄️ PostgreSQL Database               --> Complete `wdig_schema.sql` schema & analytics views
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For detailed specifications, API routes, and schema structures, refer to **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**.
